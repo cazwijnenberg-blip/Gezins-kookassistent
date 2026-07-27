@@ -254,8 +254,17 @@ st.sidebar.info(
   "Stuur een appje naar het Twilio nummer om de Zwijnenberg Home Hub te"
   " bereiken!"
 )
-from flask import Request
 from twilio.twiml.messaging_response import MessagingResponse
 
-# Vang inkomende WhatsApp berichten op
-# (Streamlit draait op een webserver waar Twilio een POST request naar stuurt)
+# Vang inkomende WhatsApp berichten op via Streamlit query parameters
+query_params = st.query_params
+if "Body" in query_params:
+  incoming_msg = query_params["Body"]
+
+  # Laat Gemini het bericht verwerken (gebruik je bestaande Gemini logica)
+  # response = client.models.generate_content(...)
+
+  # Stuur antwoord terug naar WhatsApp
+  resp = MessagingResponse()
+  resp.message("Ontvangen door de Zwijnenberg Home Hub!")
+  st.write(str(resp))
