@@ -254,3 +254,8 @@ st.sidebar.info(
   "Stuur een appje naar het Twilio nummer om de Zwijnenberg Home Hub te"
   " bereiken!"
 )
+from flask import Request
+from twilio.twiml.messaging_response import MessagingResponse
+
+# Vang inkomende WhatsApp berichten op
+# (Streamlit draait op een webserver waar Twilio een POST request naar stuurt)
