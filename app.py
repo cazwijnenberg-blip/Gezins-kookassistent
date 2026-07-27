@@ -239,3 +239,18 @@ elif pagina == "🛒 Boodschappenlijstje":
             st.checkbox(item)
     else:
         st.info("De lijst is leeg.")
+
+from twilio.rest import Client as TwilioClient
+
+# Haal Twilio gegevens veilig op uit secrets
+TWILIO_SID = st.secrets["TWILIO_ACCOUNT_SID"]
+TWILIO_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
+twilio_client = TwilioClient(TWILIO_SID, TWILIO_TOKEN)
+
+# Sectie in de sidebar of app voor WhatsApp status
+st.sidebar.markdown("---")
+st.sidebar.subheader("📱 WhatsApp Koppeling")
+st.sidebar.info(
+  "Stuur een appje naar het Twilio nummer om de Zwijnenberg Home Hub te"
+  " bereiken!"
+)
