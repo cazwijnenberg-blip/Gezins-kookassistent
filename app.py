@@ -8,7 +8,7 @@ import calendar
 st.set_page_config(page_title="Zwijnenberg home assist", page_icon="🏠", layout="wide")
 
 # Initialiseer de client (vervang met je echte API-sleutel)
-client = genai.Client(api_key="AQ.Ab8RN6Kc5eLEr_sB03aAKlZpb75MbOIJ1pOjDzF9nwf-fLoj0Q")
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # --- ACHTERGROND GEZINS-INFO VOOR DE AI ---
 GEZIN_CONTEXT = (
