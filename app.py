@@ -13,13 +13,13 @@ st.set_page_config(page_title="Zwijnenberg home assist", page_icon="🐗", layou
 st.markdown("""
     <style>
     @media (max-width: 768px) {
-        .stColumns {
+        .stColumns:not(.calendar-grid) {
             flex-direction: column !important;
         }
-        div[data-testid="column"] {
+        div[data-testid="column"]:not(.calendar-col) {
             width: 100% !important;
             flex: 1 1 100% !important;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
     }
     input, select, textarea {
@@ -32,7 +32,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- INITIALISEER CLIENTS ---
-# Let op: Vul hier jouw echte Gemini API-sleutel in!
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # --- LOKAAL JSON BEHEER ---
@@ -84,17 +83,13 @@ def verwijder_boodschappen_uit_sheet(te_verwijderen_lijst):
     data["boodschappen"] = [item for item in huidige if item not in te_verwijderen_lijst]
     sla_data_op(data)
 
-# --- ACHTERGROND GEZINS- & ALGEMENE INFO VOOR DE AI ---
 GEZIN_CONTEXT = (
     "Je bent Boris, de virtuele huiszwijn-assistent van het gezin Zwijnenberg: "
     "Chiel (geboren 13 juni 1989, 37 jaar) en Angelica (geboren 15 januari 1989, 37 jaar, getrouwd 22-04-2024), "
     "Tygo (geboren 24 oktober 2022, 3 jaar) en Duen (geboren 11 juni 2025, 1 jaar). "
-    "Je spreekt altijd een beetje vrolijk, behulpzaam en in karakter als een slim huiszwijn (gebruik af en toe een subtiele knipoog zoals 'Oink!'). "
-    "Je bent niet alleen expert op het gebied van het huishouden, recepten en de gezinsplanning, maar je hebt ook "
-    "brede algemene kennis. Je kunt dus ook feitelijke vragen beantwoorden over het weer, reistijden, aardrijkskunde, etc."
+    "Je spreekt altijd een beetje vrolijk, behulpzaam en in karakter als een slim huiszwijn (gebruik af en toe een subtiele knipoog zoals 'Oink!')."
 )
 
-# --- ZIJKANT / NAVIGATIE ---
 st.sidebar.title("🍳 Menu")
 pagina = st.sidebar.radio(
     "Ga naar:", 
@@ -107,86 +102,9 @@ pagina = st.sidebar.radio(
     ]
 )
 
-# --- PAGINA 0: HOME / LANDINGSPAGINA ---
 if pagina == "🏠 Home":
     st.title("🏡 Zwijnenberg Home Hub & Boris")
-    st.write("Welkom thuis! Maak kennis met **Boris**, jullie persoonlijke virtuele assistent.")
-
-    st.markdown("""
-        <style>
-        @keyframes speak {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1) translateY(-3px); }
-            100% { transform: scale(1); }
-        }
-        .zwijn-container {
-            text-align: center;
-            background: linear-gradient(135deg, #fff0f3 0%, #ffccd5 100%);
-            padding: 20px;
-            border-radius: 15px;
-            border: 2px solid #ff4b4b;
-            margin-bottom: 20px;
-        }
-        .snuit-pratend {
-            display: inline-block;
-            animation: speak 0.6s infinite ease-in-out;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    is_reagerend = "laatste_antwoord" in st.session_state and st.session_state.laatste_antwoord != ""
-    avatar_class = "snuit-pratend" if is_reagerend else ""
-    
-    st.markdown(f"""
-        <div class="zwijn-container">
-            <div class="{avatar_class}" style="font-size: 60px;">🐗</div>
-            <h3 style="margin: 5px 0 0 0; color: #333;">Boris de Zwijnenberg Assistent</h3>
-            <p style="font-style: italic; color: #666; font-size: 14px;">"Oink! Vraag me alles over jullie gezin, recepten, het weer etc!"</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    tab_tekst, tab_spraak = st.tabs(["⌨️ Typ je vraag", "🎤 Spreek met Boris"])
-    gebruiker_vraag = ""
-
-    with tab_tekst:
-        getypte_vraag = st.text_input("💬 Waar kan ik mee helpen?", placeholder="Bijv. 'Wat voor weer wordt het morgen?' of 'Zet melk op de lijst'")
-        if getypte_vraag:
-            gebruiker_vraag = getypte_vraag
-
-    with tab_spraak:
-        st.write("Klik op de opnameknop en spreek je vraag in:")
-        audio_file = st.audio_input("Spreek je bericht in voor Boris")
-        if audio_file is not None:
-            with st.spinner("Boris luistert naar je audio..."):
-                audio_bytes = audio_file.read()
-                contents = [
-                    GEZIN_CONTEXT,
-                    {"mime_type": "audio/wav", "data": audio_bytes},
-                    "Luister naar deze audio-inspraak van de gebruiker, begrijp de vraag en geef antwoord in de rol van Boris."
-                ]
-                response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=contents
-                )
-                gebruiker_vraag = "(Spraakbericht verwerkt)"
-                st.session_state.laatste_antwoord = response.text
-
-    if tab_tekst and st.button("Vraag Boris", type="primary"):
-        if gebruiker_vraag:
-            with st.spinner("Boris denkt na... 🐗"):
-                contents = [GEZIN_CONTEXT, f"De gebruiker vraagt: '{gebruiker_vraag}'. Geef antwoord in de rol van Boris."]
-                response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=contents
-                )
-                st.session_state.laatste_antwoord = response.text
-        else:
-            st.warning("Typ eerst even een berichtje.")
-
-    if "laatste_antwoord" in st.session_state and st.session_state.laatste_antwoord:
-        st.success(st.session_state.laatste_antwoord)
-
-    st.markdown("---")
+    st.write("Welkom thuis! Maak kennis met **Boris**, jullie persoonlijke virtuele zwijnen-assistent.")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -217,70 +135,24 @@ if pagina == "🏠 Home":
         else:
             st.write("De boodschappenlijst is helemaal leeg! 👍")
 
-# --- PAGINA 1: RECEPTEN GENERATOR ---
 elif pagina == "🍳 Recepten Generator":
     st.title("🍳 Recepten Generator")
-    st.write("Upload een foto van de koelkast. Boris maakt direct een maaltijdplan voor het gezin!")
-
     uploaded_file = st.file_uploader("Upload foto", type=["jpg", "jpeg", "png"])
+    if st.button("Genereer Maaltijdplan", type="primary") and uploaded_file:
+        with st.spinner("Boris bekijkt de foto..."):
+            contents = [GEZIN_CONTEXT, Image.open(uploaded_file), "Analyseer deze koelkastfoto en geef receptopties."]
+            response = client.models.generate_content(model='gemini-3.5-flash', contents=contents)
+            st.write(response.text)
 
-    if st.button("Genereer Maaltijdplan", type="primary"):
-        if uploaded_file is not None:
-            with st.spinner("Boris bekijkt de foto..."):
-                contents = [GEZIN_CONTEXT]
-                image = Image.open(uploaded_file)
-                contents.append(image)
-                st.image(image, caption="Geüploade foto", width=400)
-                    
-                prompt = (
-                    "Analyseer deze koelkastfoto in de rol van Boris. Geef op basis hiervan:\n"
-                    "1. **Receptopties**: Kindvriendelijke gerechten.\n"
-                    "2. **Mini-planning**: Welk recept voor welke dag."
-                )
-                contents.append(prompt)
-
-                response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=contents
-                )
-                
-                st.subheader("Jouw Gezinsrecepten & Planning:")
-                st.write(response.text)
-        else:
-            st.warning("Upload eerst een foto!")
-
-# --- PAGINA 2: KASSABON SCANNER ---
 elif pagina == "🧾 Kassabon Scanner":
     st.title("🧾 Kassabon Scanner")
-    st.write("Upload een foto van een bon. Boris leest de producten uit voor je boodschappenlijstje!")
-
     bon_file = st.file_uploader("Upload foto van de bon", type=["jpg", "jpeg", "png"])
+    if st.button("Scan Bon", type="primary") and bon_file:
+        with st.spinner("De bon wordt gelezen..."):
+            contents = [GEZIN_CONTEXT, Image.open(bon_file), "Lees deze kassabon uit voor de boodschappenlijst."]
+            response = client.models.generate_content(model='gemini-3.5-flash', contents=contents)
+            st.write(response.text)
 
-    if st.button("Scan Bon", type="primary"):
-        if bon_file is not None:
-            with st.spinner("De bon wordt gelezen..."):
-                contents = [GEZIN_CONTEXT]
-                image = Image.open(bon_file)
-                contents.append(image)
-                st.image(image, caption="Geüploade bon", width=400)
-                    
-                prompt = (
-                    "Lees deze kassabon uit. Geef een duidelijke opsommingslijst van de gekochte producten "
-                    "zodat deze direct op de boodschappenlijst gezet kunnen worden."
-                )
-                contents.append(prompt)
-
-                response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=contents
-                )
-                
-                st.subheader("Gevonden producten:")
-                st.write(response.text)
-        else:
-            st.warning("Upload eerst een foto van de kassabon!")
-
-# --- PAGINA 3: MAANDAGENDA & PLANNING ---
 elif pagina == "📅 Maandagenda & Planning":
     st.title("📅 Gezins Maandagenda")
 
@@ -288,15 +160,12 @@ elif pagina == "📅 Maandagenda & Planning":
         with st.form("agenda_form", clear_on_submit=True):
             nieuwe_datum = st.date_input("Datum", datetime.date.today())
             nieuwe_beschrijving = st.text_input("Omschrijving")
-            submit_knop = st.form_submit_button("Toevoegen aan agenda")
-            
-            if submit_knop and nieuwe_beschrijving:
+            if st.form_submit_button("Toevoegen aan agenda") and nieuwe_beschrijving:
                 voeg_agenda_toe_aan_sheet(nieuwe_datum.strftime("%Y-%m-%d"), nieuwe_beschrijving)
                 st.success("Toegevoegd!")
                 st.rerun()
 
     st.markdown("---")
-
     vandaag = datetime.date.today()
     jaar, maand = vandaag.year, vandaag.month
     maand_naam = vandaag.strftime("%B %Y")
@@ -314,15 +183,16 @@ elif pagina == "📅 Maandagenda & Planning":
     cal = calendar.monthcalendar(jaar, maand)
     weekdagen = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"]
 
+    # Kalender kolommen geforceerd naast elkaar
     cols = st.columns(7)
     for i, dag_naam in enumerate(weekdagen):
-        cols[i].markdown(f"<p style='text-align: center; font-weight: bold;'>{dag_naam}</p>", unsafe_allow_html=True)
+        cols[i].markdown(f"<p style='text-align: center; font-weight: bold; font-size: 12px;'>{dag_naam}</p>", unsafe_allow_html=True)
 
     for week in cal:
         cols = st.columns(7)
         for i, dag in enumerate(week):
             if dag == 0:
-                cols[i].markdown("<div style='padding: 10px; text-align: center; color: #ccc;'>-</div>", unsafe_allow_html=True)
+                cols[i].markdown("<div style='padding: 5px; text-align: center; color: #ccc;'>-</div>", unsafe_allow_html=True)
             else:
                 huidige_datum_obj = datetime.date(jaar, maand, dag)
                 datum_sleutel = huidige_datum_obj.strftime("%Y-%m-%d")
@@ -335,12 +205,12 @@ elif pagina == "📅 Maandagenda & Planning":
                 if is_vandaag: border_style = "2px solid #ff4b4b"
                 if heeft_afspraak: bg_color = "#e6f3ff"
 
-                inhoud_tekst = f"<b>{dag}</b>"
+                inhoud_tekst = f"<b style='font-size: 12px;'>{dag}</b>"
                 if heeft_afspraak:
-                    inhoud_tekst += "<br><span style='font-size: 10px; color: #0066cc;'>📌</span>"
+                    inhoud_tekst += "<br><span style='font-size: 9px; color: #0066cc;'>📌</span>"
 
                 cols[i].markdown(
-                    f"""<div style="background-color: {bg_color}; border: {border_style}; border-radius: 6px; padding: 6px; text-align: center; min-height: 45px; margin-bottom: 3px;">
+                    f"""<div style="background-color: {bg_color}; border: {border_style}; border-radius: 4px; padding: 4px; text-align: center; min-height: 35px; margin-bottom: 2px;">
                         {inhoud_tekst}
                     </div>""", 
                     unsafe_allow_html=True
@@ -350,10 +220,8 @@ elif pagina == "📅 Maandagenda & Planning":
     for item in sorted(agenda_data, key=lambda x: str(x.get("datum", ""))):
         st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
-# --- PAGINA 4: BOODSCHAPPENLIJSTJE ---
 elif pagina == "🛒 Boodschappenlijstje":
     st.title("🛒 Boodschappenlijstje")
-    
     nieuw_item = st.text_input("Voeg iets toe:")
     if st.button("Toevoegen") and nieuw_item:
         voeg_boodschap_toe_aan_sheet(nieuw_item)
@@ -368,10 +236,10 @@ elif pagina == "🛒 Boodschappenlijstje":
             if st.checkbox(item, key=f"boodschap_{idx}"):
                 te_verwijderen.append(item)
         
-        if te_verwijderen:
-            if st.button("Verwijder aangevinkte items"):
-                verwijder_boodschappen_uit_sheet(te_verwijderen)
-                st.success("Lijst bijgewerkt!")
-                st.rerun()
+        if te_verwijderen and st.button("Verwijder aangevinkte items"):
+            verwijder_boodschappen_uit_sheet(te_verwijderen)
+            st.success("Lijst bijgewerkt!")
+            st.rerun()
     else:
         st.info("De lijst is leeg.")
+
