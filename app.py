@@ -166,7 +166,7 @@ if pagina == "🏠 Home":
     if st.button("🐷 Vertel een verhaaltje voor Tygo & Duen!", use_container_width=True):
         with st.spinner("Boris verzint een verhaaltje..."):
             prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig en lief verhaaltje (max 4 zinnen) over wat jij (Boris) vandaag hebt uitgespookt. Richt je speciaal tot Tygo (3) en Duen (1)."
-            response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+            response = client.models.generate_content(model='gemini-3.5-flash', contents=prompt)
             st.success(response.text)
             
     st.markdown("---")
@@ -215,13 +215,13 @@ if pagina == "🏠 Home":
                 try:
                     if audio_value:
                         response = client.models.generate_content(
-                            model='gemini-2.5-flash',
+                            model='gemini-3.5-flash',
                             contents=[*input_content, instructie],
                             config={'response_mime_type': 'application/json'}
                         )
                     else:
                         response = client.models.generate_content(
-                            model='gemini-2.5-flash',
+                            model='gemini-3.5-flash',
                             contents=input_content + "\n" + instructie,
                             config={'response_mime_type': 'application/json'}
                         )
@@ -258,7 +258,7 @@ elif pagina == "🍳 Recepten Generator":
                     GEZIN_CONTEXT, Image.open(uploaded_file), 
                     "Geef 2 receptopties. Eindig je bericht met een JSON-lijst van ingrediënten die waarschijnlijk nog gekocht moeten worden in deze structuur: {'boodschappen': ['item1', 'item2']}"
                 ]
-                response = client.models.generate_content(model='gemini-2.5-flash', contents=contents)
+                response = client.models.generate_content(model='gemini-3.5-flash', contents=contents)
                 
                 # Sla het antwoord op in session state
                 st.session_state["laatste_recept"] = response.text
@@ -304,7 +304,7 @@ elif pagina == "🧾 Kassabon Scanner":
     if st.button("Scan Bon", type="primary") and bon_file:
         with st.spinner("Bon wordt gelezen..."):
             response = client.models.generate_content(
-                model='gemini-2.5-flash', 
+                model='gemini-3.5-flash', 
                 contents=[GEZIN_CONTEXT, Image.open(bon_file), "Lees de bon en geef het totaalbedrag."]
             )
             st.write(response.text)
