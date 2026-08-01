@@ -9,13 +9,7 @@ import random
 import base64
 
 # --- PAGINA CONFIGURATIE ---
-# --- PAGINA CONFIGURATIE ---
-# Gebruik de foto van Boris (als boris.png in je map staat) als App-icoon
-st.set_page_config(
-    page_title="Zwijnenberg Home Assist", 
-    page_icon="boris.png",  # <-- Hier gebruiken we nu jouw foto van Boris!
-    layout="wide"
-))
+st.set_page_config(page_title="Zwijnenberg home assist", page_icon="🐗", layout="wide")
 
 # --- HELPER OM AFBEELDING OM TE ZETTEN NAAR BASE64 ---
 def get_image_base64(image_path):
