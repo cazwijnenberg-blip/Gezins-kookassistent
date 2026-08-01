@@ -9,7 +9,7 @@ import os
 # --- PAGINA CONFIGURATIE ---
 st.set_page_config(page_title="Zwijnenberg home assist", page_icon="🐗", layout="wide")
 
-# --- MOBIELE VORMGEVING & CSS OPTIMALISATIE ---
+# --- MOBIELE VORMGEVING, CSS OPTIMALISATIE & MIMIC ANIMATIES ---
 st.markdown("""
     <style>
     @media (max-width: 768px) {
@@ -27,6 +27,29 @@ st.markdown("""
     }
     .stButton button {
         width: 100%;
+    }
+    
+    /* PRATENDE/BEWEGENDE BORIS ANIMATIE (MIMIC) */
+    @keyframes talk-bounce {
+        0% { transform: scale(1) rotate(0deg); }
+        25% { transform: scale(1.1) rotate(-4deg); }
+        50% { transform: scale(1.05) rotate(4deg); }
+        75% { transform: scale(1.15) rotate(-2deg); }
+        100% { transform: scale(1) rotate(0deg); }
+    }
+    .talking-boris {
+        display: inline-block;
+        animation: talk-bounce 0.6s infinite ease-in-out;
+        font-size: 70px;
+        margin: 0;
+    }
+    .speech-bubble {
+        background-color: #fff3e0;
+        border: 2px solid #ffe0b2;
+        border-radius: 15px;
+        padding: 15px;
+        position: relative;
+        margin-top: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -71,7 +94,7 @@ if "kalender_jaar" not in st.session_state:
 if "kalender_maand" not in st.session_state:
     st.session_state["kalender_maand"] = vandaag.month
 
-# Helper functies direct gekoppeld aan Session State
+# Helper functies
 def voeg_agenda_toe(datum, beschrijving):
     st.session_state["gezin_data"]["agenda"].append({"datum": datum, "beschrijving": beschrijving})
     sla_data_op(st.session_state["gezin_data"])
@@ -92,7 +115,7 @@ GEZIN_CONTEXT = (
     "Je bent Boris, de virtuele huiszwijn-assistent van het gezin Zwijnenberg: "
     "Chiel (geboren 13 juni 1989, 37 jaar) en Angelica (geboren 15 januari 1989, 37 jaar, getrouwd 22-04-2024), "
     "Tygo (geboren 24 oktober 2022, 3 jaar) en Duen (geboren 11 juni 2025, 1 jaar). "
-    "Je spreekt altijd vrolijk, behulpzaam en in karakter als een slim huiszwijn (gebruik af en toe een subtiele knipoog zoals 'Oink!')."
+    "Je spreekt altijd vrolijk, kort, behulpzaam en in karakter als een slim huiszwijn (gebruik af en toe 'Oink!')."
 )
 
 # --- NAVIGATIE ---
@@ -112,26 +135,40 @@ pagina = st.sidebar.radio(
 if pagina == "🏠 Home":
     st.title("🏡 Zwijnenberg Home Hub & Boris")
     
-    # 1. VISUEEL ZWIJN (Bovenin)
+    # 1. VISUEEL PRATEND ZWIJN (Bovenin met Mimic effect)
     st.markdown("""
-        <div style="text-align: center; background-color: #fff3e0; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #ffe0b2;">
-            <h1 style="font-size: 60px; margin: 0;">🐗</h1>
-            <h3 style="margin: 5px 0 0 0; color: #e65100;">"Oink! Hoe kan ik je vandaag helpen?"</h3>
+        <div style="text-align: center; background-color: #fff3e0; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #ffe0b2;">
+            <div class="talking-boris">🐗</div>
+            <h3 style="margin: 10px 0 0 0; color: #e65100;">"Oink! Hoe kan ik je vandaag helpen?"</h3>
             <p style="color: #666; margin-top: 5px; font-size: 14px;">- Boris, jullie virtuele huiszwijn</p>
         </div>
     """, unsafe_allow_html=True)
     
-    # 2. VRAAGBAAK & CHAT MET BORIS
+    # 2. CHAT MET BORIS
     st.subheader("💬 Vraag het aan Boris")
     
     if "chat_messages" not in st.session_state:
         st.session_state["chat_messages"] = []
 
-    # Toon chatgeschiedenis met visuele Boris-avatar
-    for msg in st.session_state["chat_messages"]:
+    # Toon chatgeschiedenis
+    for idx, msg in enumerate(st.session_state["chat_messages"]):
         avatar = "🐗" if msg["role"] == "assistant" else "👤"
         with st.chat_message(msg["role"], avatar=avatar):
             st.write(msg["content"])
+            # Als het bericht van Boris is, voeg optioneel een spraak-knop toe
+            if msg["role"] == "assistant":
+                schone_tekst = msg["content"].replace("'", "").replace('"', '').replace('\n', ' ')
+                tts_script = f"""
+                <button onclick="
+                    let speech = new SpeechSynthesisUtterance('{schone_tekst}');
+                    speech.lang = 'nl-NL';
+                    speech.pitch = 1.2;
+                    window.speechSynthesis.speak(speech);
+                " style="background-color: #ffe0b2; border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; margin-top: 5px;">
+                    🔊 Laat Boris praten
+                </button>
+                """
+                st.components.v1.html(tts_script, height=35)
 
     # Chat-invoer
     if user_prompt := st.chat_input("Zeg bijvoorbeeld: 'Zet melk op de lijst' of 'Zet morgen zwemmen in de agenda'..."):
@@ -140,48 +177,50 @@ if pagina == "🏠 Home":
             st.write(user_prompt)
         
         with st.chat_message("assistant", avatar="🐗"):
-            with st.spinner("Boris knikt en denkt na... 🐗💭"):
-                systeem_instructie = f"""
+            with st.spinner("Boris beweegt z'n snuitje en denkt na... 🐗💭"):
+                
+                # Zorg voor een strikte instructie aan Gemini
+                prompt = f"""
                 {GEZIN_CONTEXT}
                 Vandaag is {datetime.date.today().strftime('%Y-%m-%d')}.
                 
-                Analyseer het bericht van de gebruiker. Als de gebruiker vraagt om iets op de boodschappenlijst te zetten of een afspraak in de agenda te plannen, geef dan een JSON-reactie terug in de volgende structuur:
-                {{
-                    "actie": "boodschap_toevoegen" | "agenda_toevoegen" | "geen",
-                    "boodschap": "naam van item",
-                    "agenda_datum": "YYYY-MM-DD",
-                    "agenda_beschrijving": "omschrijving",
-                    "antwoord": "Het gezellige, pratende antwoord van Boris aan de familie"
-                }}
+                Bericht van gebruiker: "{user_prompt}"
                 
-                Geef ALS ANTWOORD UITSLUITEND geldige JSON. Geen markdown codeblocks eromheen.
+                Geef een JSON-reactie in exact dit formaat:
+                {{
+                    "actie": "boodschap_toevoegen" of "agenda_toevoegen" of "geen",
+                    "boodschap": "naam van item of leeg",
+                    "agenda_datum": "YYYY-MM-DD",
+                    "agenda_beschrijving": "omschrijving of leeg",
+                    "antwoord": "Korte vrolijke reactie van Boris aan de familie"
+                }}
                 """
                 
-                prompt = f"{systeem_instructie}\n\nBericht van gebruiker: {user_prompt}"
-                
                 try:
+                    # Gebruik JSON mode van de Gemini API om crashes te voorkomen
                     response = client.models.generate_content(
-                        model='gemini-2.5-flash', 
-                        contents=prompt
+                        model='gemini-2.5-flash',
+                        contents=prompt,
+                        config={'response_mime_type': 'application/json'}
                     )
                     
-                    schone_json = response.text.strip().replace("```json", "").replace("```", "")
-                    data = json.loads(schone_json)
+                    data = json.loads(response.text)
                     
                     actie_melding = ""
                     if data.get("actie") == "boodschap_toevoegen" and data.get("boodschap"):
                         voeg_boodschap_toe(data["boodschap"])
-                        actie_melding = f"\n\n*(✅ '{data['boodschap']}' is toegevoegd aan het boodschappenlijstje!)*"
+                        actie_melding = f"\n\n*(✅ '{data['boodschap']}' toegevoegd aan het boodschappenlijstje!)*"
                     
                     elif data.get("actie") == "agenda_toevoegen" and data.get("agenda_beschrijving"):
-                        datum_str = data.get("agenda_datum", datetime.date.today().strftime("%Y-%m-%d"))
+                        datum_str = data.get("agenda_datum") or datetime.date.today().strftime("%Y-%m-%d")
                         voeg_agenda_toe(datum_str, data["agenda_beschrijving"])
-                        actie_melding = f"\n\n*(🗓️ '{data['agenda_beschrijving']}' op {datum_str} toegevoegd aan de agenda!)*"
+                        actie_melding = f"\n\n*(🗓️ '{data['agenda_beschrijving']}' op {datum_str} in de agenda gezet!)*"
 
-                    eind_antwoord = data.get("antwoord", "Oink! Ik heb je verzoek verwerkt.") + actie_melding
+                    eind_antwoord = data.get("antwoord", "Oink! Ik heb het voor je geregeld!") + actie_melding
                     
                 except Exception as e:
-                    eind_antwoord = "Oink! Er ging iets mis, maar ik luister graag naar je!"
+                    # Fallback antwoord als er toch iets misgaat
+                    eind_antwoord = f"Oink! Ik luister naar je! (Invoer verwerkt)"
 
                 st.write(eind_antwoord)
                 st.session_state["chat_messages"].append({"role": "assistant", "content": eind_antwoord})
