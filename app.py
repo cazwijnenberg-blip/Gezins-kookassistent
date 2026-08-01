@@ -13,7 +13,7 @@ import base64
 # Dit stelt ook de favicon (het app-icoontje op je telefoon) in!
 st.set_page_config(
     page_title="Zwijnenberg Home Assist", 
-    page_icon="boris.png", 
+    page_icon="Boris.png", 
     layout="wide"
 )
 
@@ -138,15 +138,15 @@ pagina = st.sidebar.radio(
 if pagina == "🏠 Home":
     
     # 1. AFBEELDING INLADEN (Zoekt lokaal naar png of jpg, anders de reservefoto)
-    base64_boris = get_image_base64('boris.png')
-    base64_boris_jpg = get_image_base64('boris.jpg')
+    base64_boris = get_image_base64('Boris.png')
+    base64_boris_jpg = get_image_base64('Boris.jpg')
     
     if base64_boris:
         IMAGE_SRC = f"data:image/png;base64,{base64_boris}"
-    elif base64_boris_jpg:
-        IMAGE_SRC = f"data:image/jpeg;base64,{base64_boris_jpg}"
+    elif base64_Boris_jpg:
+        IMAGE_SRC = f"data:image/jpeg;base64,{base64_Boris_jpg}"
     else:
-        # Fallback foto van een varkentje als boris.png / boris.jpg ontbreekt
+        # Fallback foto van een varkentje als Boris.png / Boris.jpg ontbreekt
         IMAGE_SRC = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Juliana_pig_in_straw.jpg/500px-Juliana_pig_in_straw.jpg"
 
     # 2. 'GOEIEMORGEN' DASHBOARD
