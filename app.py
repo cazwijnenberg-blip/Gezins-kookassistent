@@ -32,7 +32,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- INITIALISEER CLIENTS ---
-# Zorg dat "GEMINI_API_KEY" in st.secrets staat ingesteld
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # --- LOKAAL JSON BEHEER ---
@@ -66,12 +65,13 @@ if "gezin_data" not in st.session_state:
     st.session_state["gezin_data"] = laad_data()
 
 vandaag = datetime.date.today()
+
 if "kalender_jaar" not in st.session_state:
     st.session_state["kalender_jaar"] = vandaag.year
 if "kalender_maand" not in st.session_state:
     st.session_state["kalender_maand"] = vandaag.month
 
-# Helper functies direct op session_state
+# Helper functies direct gekoppeld aan Session State
 def voeg_agenda_toe(datum, beschrijving):
     st.session_state["gezin_data"]["agenda"].append({"datum": datum, "beschrijving": beschrijving})
     sla_data_op(st.session_state["gezin_data"])
@@ -111,8 +111,85 @@ pagina = st.sidebar.radio(
 # --- 🏠 HOME ---
 if pagina == "🏠 Home":
     st.title("🏡 Zwijnenberg Home Hub & Boris")
-    st.write("Welkom thuis! Maak kennis met **Boris**, jullie persoonlijke virtuele zwijnen-assistent. *Oink!* 🐗")
     
+    # 1. VISUEEL ZWIJN (Bovenin)
+    st.markdown("""
+        <div style="text-align: center; background-color: #fff3e0; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #ffe0b2;">
+            <h1 style="font-size: 60px; margin: 0;">🐗</h1>
+            <h3 style="margin: 5px 0 0 0; color: #e65100;">"Oink! Hoe kan ik je vandaag helpen?"</h3>
+            <p style="color: #666; margin-top: 5px; font-size: 14px;">- Boris, jullie virtuele huiszwijn</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # 2. VRAAGBAAK & CHAT MET BORIS
+    st.subheader("💬 Vraag het aan Boris")
+    
+    if "chat_messages" not in st.session_state:
+        st.session_state["chat_messages"] = []
+
+    # Toon chatgeschiedenis met visuele Boris-avatar
+    for msg in st.session_state["chat_messages"]:
+        avatar = "🐗" if msg["role"] == "assistant" else "👤"
+        with st.chat_message(msg["role"], avatar=avatar):
+            st.write(msg["content"])
+
+    # Chat-invoer
+    if user_prompt := st.chat_input("Zeg bijvoorbeeld: 'Zet melk op de lijst' of 'Zet morgen zwemmen in de agenda'..."):
+        st.session_state["chat_messages"].append({"role": "user", "content": user_prompt})
+        with st.chat_message("user", avatar="👤"):
+            st.write(user_prompt)
+        
+        with st.chat_message("assistant", avatar="🐗"):
+            with st.spinner("Boris knikt en denkt na... 🐗💭"):
+                systeem_instructie = f"""
+                {GEZIN_CONTEXT}
+                Vandaag is {datetime.date.today().strftime('%Y-%m-%d')}.
+                
+                Analyseer het bericht van de gebruiker. Als de gebruiker vraagt om iets op de boodschappenlijst te zetten of een afspraak in de agenda te plannen, geef dan een JSON-reactie terug in de volgende structuur:
+                {{
+                    "actie": "boodschap_toevoegen" | "agenda_toevoegen" | "geen",
+                    "boodschap": "naam van item",
+                    "agenda_datum": "YYYY-MM-DD",
+                    "agenda_beschrijving": "omschrijving",
+                    "antwoord": "Het gezellige, pratende antwoord van Boris aan de familie"
+                }}
+                
+                Geef ALS ANTWOORD UITSLUITEND geldige JSON. Geen markdown codeblocks eromheen.
+                """
+                
+                prompt = f"{systeem_instructie}\n\nBericht van gebruiker: {user_prompt}"
+                
+                try:
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash', 
+                        contents=prompt
+                    )
+                    
+                    schone_json = response.text.strip().replace("```json", "").replace("```", "")
+                    data = json.loads(schone_json)
+                    
+                    actie_melding = ""
+                    if data.get("actie") == "boodschap_toevoegen" and data.get("boodschap"):
+                        voeg_boodschap_toe(data["boodschap"])
+                        actie_melding = f"\n\n*(✅ '{data['boodschap']}' is toegevoegd aan het boodschappenlijstje!)*"
+                    
+                    elif data.get("actie") == "agenda_toevoegen" and data.get("agenda_beschrijving"):
+                        datum_str = data.get("agenda_datum", datetime.date.today().strftime("%Y-%m-%d"))
+                        voeg_agenda_toe(datum_str, data["agenda_beschrijving"])
+                        actie_melding = f"\n\n*(🗓️ '{data['agenda_beschrijving']}' op {datum_str} toegevoegd aan de agenda!)*"
+
+                    eind_antwoord = data.get("antwoord", "Oink! Ik heb je verzoek verwerkt.") + actie_melding
+                    
+                except Exception as e:
+                    eind_antwoord = "Oink! Er ging iets mis, maar ik luister graag naar je!"
+
+                st.write(eind_antwoord)
+                st.session_state["chat_messages"].append({"role": "assistant", "content": eind_antwoord})
+                st.rerun()
+
+    st.markdown("---")
+
+    # 3. OVERZICHT BINNENKORT & BOODSCHAPPEN
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📌 Binnenkort")
@@ -153,7 +230,6 @@ elif pagina == "🍳 Recepten Generator":
                     Image.open(uploaded_file), 
                     "Analyseer deze koelkastfoto en geef 2 tot 3 lekkere receptopties geschikt voor het hele gezin."
                 ]
-                # Gebruik gemini-2.5-flash
                 response = client.models.generate_content(model='gemini-2.5-flash', contents=contents)
                 st.write(response.text)
         else:
@@ -171,7 +247,6 @@ elif pagina == "🧾 Kassabon Scanner":
                     Image.open(bon_file), 
                     "Lees deze kassabon uit en geef een overzichtelijke lijst van de gekochte artikelen en het totaalbedrag."
                 ]
-                # Gebruik gemini-2.5-flash
                 response = client.models.generate_content(model='gemini-2.5-flash', contents=contents)
                 st.write(response.text)
         else:
@@ -192,7 +267,6 @@ elif pagina == "📅 Maandagenda & Planning":
 
     st.markdown("---")
 
-    # Navigatieknoppen voor de kalender
     col_prev, col_title, col_next = st.columns([1, 4, 1])
     
     with col_prev:
