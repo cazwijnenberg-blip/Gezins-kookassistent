@@ -22,7 +22,7 @@ def get_image_base64(image_path):
             return base64.b64encode(img_file.read()).decode('utf-8')
     return None
 
-# --- STYLING & ANIMATIE (Levendiger gemaakt) ---
+# --- STYLING & ANIMATIE ---
 st.markdown("""
     <style>
     @media (max-width: 768px) {
@@ -38,7 +38,6 @@ st.markdown("""
     input, select, textarea { font-size: 16px !important; }
     .stButton button { width: 100%; }
     
-    /* LEVENDIGE PRATENDE ANIMATIE (AVATAR STIJL) */
     @keyframes avatar-talking {
         0% { transform: translateY(0px) scale(1) rotate(0deg); }
         20% { transform: translateY(-6px) scale(1.04) rotate(-2deg); }
@@ -47,16 +46,16 @@ st.markdown("""
         80% { transform: translateY(2px) scale(0.99) rotate(1deg); }
         100% { transform: translateY(0px) scale(1) rotate(0deg); }
     }
-    .boris-avatar-container {
+    .Boris-avatar-container {
         text-align: center; background-color: #fff3e0; padding: 15px;
         border-radius: 15px; margin-bottom: 20px; border: 2px solid #ffe0b2;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
-    .boris-img {
+    .Boris-img {
         width: 100%; max-width: 480px; border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.2s ease;
     }
-    .boris-img-talking {
+    .Boris-img-talking {
         animation: avatar-talking 0.3s infinite ease-in-out;
     }
     .dashboard-box {
@@ -121,7 +120,7 @@ GEZIN_CONTEXT = (
     "Je bent Boris, de virtuele huiszwijn-assistent van het gezin Zwijnenberg: "
     "Chiel (geboren 13 juni 1989), Angelica (geboren 15 januari 1989, getrouwd 22-04-2024), "
     "Tygo (geboren 24 oktober 2022) en Duen (geboren 11 juni 2025). "
-    "Jullie wonen in Raalte. Je spreekt vrolijk, kort, en als een slim huiszwijn ('Oink!')."
+    "Jullie wonen in Luttenberg. Je spreekt vrolijk, kort, en als een slim huiszwijn ('Oink!')."
 )
 
 st.sidebar.title("🍳 Menu")
@@ -133,29 +132,30 @@ pagina = st.sidebar.radio(
 # --- 🏠 HOME ---
 if pagina == "🏠 Home":
     
-    base64_boris = get_image_base64('Boris.png')
-    base64_boris_jpg = get_image_base64('Boris.jpg')
+    base64_Boris = get_image_base64('Boris.png')
+    base64_Boris_jpg = get_image_base64('Boris.jpg')
     
-    if base64_boris:
-        IMAGE_SRC = f"data:image/png;base64,{base64_boris}"
-    elif base64_boris_jpg:
-        IMAGE_SRC = f"data:image/jpeg;base64,{base64_boris_jpg}"
+    if base64_Boris:
+        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}"
+    elif base64_Boris_jpg:
+        IMAGE_SRC = f"data:image/jpeg;base64,{base64_Boris_jpg}"
     else:
         IMAGE_SRC = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Juliana_pig_in_straw.jpg/500px-Juliana_pig_in_straw.jpg"
 
     vandaag_str = vandaag.strftime("%Y-%m-%d")
     afspraken_vandaag = [item for item in st.session_state["gezin_data"]["agenda"] if item["datum"] == vandaag_str]
     
+    # Dashboard zonder temperatuur, aangepast naar Luttenberg
     st.markdown(f"""
         <div class="dashboard-box">
-            <h4 style="margin-top:0; color: #1565c0;">🌤️ Vandaag in Raalte ({vandaag.strftime('%d-%m-%Y')})</h4>
+            <h4 style="margin-top:0; color: #1565c0;">🏡 Vandaag in Luttenberg ({vandaag.strftime('%d-%m-%Y')})</h4>
             <p style="margin-bottom: 5px;"><b>Agenda:</b> {', '.join([a['beschrijving'] for a in afspraken_vandaag]) if afspraken_vandaag else 'Geen afspraken gepland vandaag! Tijd om te spelen!'}</p>
         </div>
     """, unsafe_allow_html=True)
 
     begroetingen = [
         "Hey familie Zwijnenberg! Oink! Waar kan ik jullie vandaag mee helpen?",
-        "Oink oink! Familie Zwijnenberg!",
+        "Oink oink! Welkom thuis in Luttenberg Chiel, Angelica, Tygo en Duen!",
         "Goedendag Zwijnenbergjes! Boris staat voor jullie klaar."
     ]
     if "huidige_begroeting" not in st.session_state:
@@ -165,28 +165,25 @@ if pagina == "🏠 Home":
     schone_begroeting = gekozen_tekst.replace("'", "").replace('"', '').replace('\n', ' ')
 
     st.markdown(f"""
-        <div class="boris-avatar-container">
-            <img src="{IMAGE_SRC}" id="boris-main-img" class="boris-img" alt="Boris">
+        <div class="Boris-avatar-container">
+            <img src="{IMAGE_SRC}" id="Boris-main-img" class="Boris-img" alt="Boris">
             <h3 style="margin: 15px 0 0 0; color: #e65100;">"{gekozen_tekst}"</h3>
         </div>
     """, unsafe_allow_html=True)
     
-    # JavaScript om een enthousiaste mannenstem te selecteren en de avatar te laten bewegen
     avatar_script = f"""
     <script>
     function spreekMetEnthousiasteStem() {{
-        let img = window.parent.document.getElementById('boris-main-img');
+        let img = window.parent.document.getElementById('Boris-main-img');
         
         window.speechSynthesis.cancel();
         let speech = new SpeechSynthesisUtterance('{schone_begroeting}');
         speech.lang = 'nl-NL';
-        speech.pitch = 1.1;  // Wat hoger/jonger
-        speech.rate = 1.05;  // Lekker vlot en enthousiast
+        speech.pitch = 1.1;
+        speech.rate = 1.05;
         
-        // Zoek naar een Nederlandse mannenstem indien beschikbaar
         let voices = window.speechSynthesis.getVoices();
         let nlVoices = voices.filter(v => v.lang.includes('nl') || v.lang.includes('NL'));
-        // Probeer een mandelijke stem te vinden (vaak zit hier Xander of een jongensnaam bij)
         let maleVoice = nlVoices.find(v => v.name.toLowerCase().includes('xander') || v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('stefan') || v.name.toLowerCase().includes('frank'));
         if (maleVoice) {{
             speech.voice = maleVoice;
@@ -195,17 +192,16 @@ if pagina == "🏠 Home":
         }}
         
         speech.onstart = function() {{
-            if(img) img.classList.add('boris-img-talking');
+            if(img) img.classList.add('Boris-img-talking');
         }};
         
         speech.onend = function() {{
-            if(img) img.classList.remove('boris-img-talking');
+            if(img) img.classList.remove('Boris-img-talking');
         }};
         
         window.speechSynthesis.speak(speech);
     }}
     
-    // Laad stemmen vooraf (nodig voor sommige browsers zoals Chrome)
     if (window.speechSynthesis.onvoiceschanged !== undefined) {{
         window.speechSynthesis.onvoiceschanged = function() {{}};
     }}
@@ -221,11 +217,37 @@ if pagina == "🏠 Home":
     """
     st.components.v1.html(avatar_script, height=55)
     
+    # Kids knop die nu ook automatisch hardop praat en beweegt!
     if st.button("🐷 Vertel een verhaaltje voor Tygo & Duen!", use_container_width=True):
         with st.spinner("Boris verzint een verhaaltje..."):
-            prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig en lief verhaaltje (max 4 zinnen) over wat jij (Boris) vandaag hebt uitgespookt. Richt je speciaal tot Tygo (3) en Duen (1)."
+            prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig en lief verhaaltje (max 4 zinnen) over wat jij (Boris) vandaag hebt uitgespookt in Luttenberg. Richt je speciaal tot Tygo (3) en Duen (1)."
             response = client.models.generate_content(model='gemini-3.5-flash', contents=prompt)
-            st.success(response.text)
+            verhaal_tekst = response.text
+            st.success(verhaal_tekst)
+            
+            # Automatisch uitspreken van het verhaaltje
+            schone_verhaal = verhaal_tekst.replace("'", "").replace('"', '').replace('\n', ' ')
+            verhaal_tts_script = f"""
+            <script>
+            let img = window.parent.document.getElementById('Boris-main-img');
+            window.speechSynthesis.cancel();
+            let speech = new SpeechSynthesisUtterance('{schone_verhaal}');
+            speech.lang = 'nl-NL';
+            speech.pitch = 1.1;
+            speech.rate = 1.05;
+            
+            let voices = window.speechSynthesis.getVoices();
+            let nlVoices = voices.filter(v => v.lang.includes('nl'));
+            let maleVoice = nlVoices.find(v => v.name.toLowerCase().includes('xander') || v.name.toLowerCase().includes('male'));
+            if (maleVoice) {{ speech.voice = maleVoice; }}
+            else if (nlVoices.length > 0) {{ speech.voice = nlVoices[0]; }}
+            
+            speech.onstart = function() {{ if(img) img.classList.add('Boris-img-talking'); }};
+            speech.onend = function() {{ if(img) img.classList.remove('Boris-img-talking'); }};
+            window.speechSynthesis.speak(speech);
+            </script>
+            """
+            st.components.v1.html(verhaal_tts_script, height=0)
             
     st.markdown("---")
     
@@ -242,7 +264,7 @@ if pagina == "🏠 Home":
                 schone_tekst = msg["content"].replace("'", "").replace('"', '').replace('\n', ' ')
                 chat_tts_script = f"""
                 <button onclick="
-                    let img = window.parent.document.getElementById('boris-main-img');
+                    let img = window.parent.document.getElementById('Boris-main-img');
                     window.speechSynthesis.cancel();
                     let speech = new SpeechSynthesisUtterance('{schone_tekst}');
                     speech.lang = 'nl-NL';
@@ -255,8 +277,8 @@ if pagina == "🏠 Home":
                     if (maleVoice) {{ speech.voice = maleVoice; }}
                     else if (nlVoices.length > 0) {{ speech.voice = nlVoices[0]; }}
                     
-                    speech.onstart = function() {{ if(img) img.classList.add('boris-img-talking'); }};
-                    speech.onend = function() {{ if(img) img.classList.remove('boris-img-talking'); }};
+                    speech.onstart = function() {{ if(img) img.classList.add('Boris-img-talking'); }};
+                    speech.onend = function() {{ if(img) img.classList.remove('Boris-img-talking'); }};
                     window.speechSynthesis.speak(speech);
                 " style="background-color: #ffe0b2; border: 1px solid #ffb74d; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: bold; color: #e65100; margin-top: 5px;">
                     🔊 Laat Boris antwoorden!
