@@ -5,6 +5,7 @@ import datetime
 import calendar
 import json
 import os
+import random
 
 # --- PAGINA CONFIGURATIE ---
 st.set_page_config(page_title="Zwijnenberg home assist", page_icon="🐗", layout="wide")
@@ -29,27 +30,32 @@ st.markdown("""
         width: 100%;
     }
     
-    /* PRATENDE/BEWEGENDE BORIS ANIMATIE (MIMIC) */
-    @keyframes talk-bounce {
-        0% { transform: scale(1) rotate(0deg); }
-        25% { transform: scale(1.1) rotate(-4deg); }
-        50% { transform: scale(1.05) rotate(4deg); }
-        75% { transform: scale(1.15) rotate(-2deg); }
-        100% { transform: scale(1) rotate(0deg); }
+    /* ANIMATIE VOOR PRATENDE BORIS */
+    @keyframes boris-talking {
+        0% { transform: translateY(0px) scale(1); }
+        25% { transform: translateY(-3px) scale(1.02) rotate(-1deg); }
+        50% { transform: translateY(2px) scale(0.99) rotate(1deg); }
+        75% { transform: translateY(-2px) scale(1.01) rotate(-0.5deg); }
+        100% { transform: translateY(0px) scale(1); }
     }
-    .talking-boris {
-        display: inline-block;
-        animation: talk-bounce 0.6s infinite ease-in-out;
-        font-size: 70px;
-        margin: 0;
-    }
-    .speech-bubble {
+    .boris-avatar-container {
+        text-align: center;
         background-color: #fff3e0;
-        border: 2px solid #ffe0b2;
-        border-radius: 15px;
         padding: 15px;
-        position: relative;
-        margin-top: 10px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        border: 2px solid #ffe0b2;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .boris-img {
+        width: 100%;
+        max-width: 450px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        transition: transform 0.3s ease;
+    }
+    .boris-img-talking {
+        animation: boris-talking 0.4s infinite ease-in-out;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -135,14 +141,62 @@ pagina = st.sidebar.radio(
 if pagina == "🏠 Home":
     st.title("🏡 Zwijnenberg Home Hub & Boris")
     
-    # 1. VISUEEL PRATEND ZWIJN (Bovenin met Mimic effect)
-    st.markdown("""
-        <div style="text-align: center; background-color: #fff3e0; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #ffe0b2;">
-            <div class="talking-boris">🐗</div>
-            <h3 style="margin: 10px 0 0 0; color: #e65100;">"Oink! Hoe kan ik je vandaag helpen?"</h3>
+    # 1. GEVARIERDE BEGROETINGEN VOOR BORIS
+    begroetingen = [
+        "Hey familie Zwijnenberg! Oink! Waar kan ik jullie vandaag mee helpen?",
+        "Oink oink! Welkom thuis Chiel, Angelica, Tygo en Duen! Wat gaan we doen vandaag?",
+        "Goedendag Zwijnenbergjes! Boris staat voor jullie klaar. Wat staat er op het programma?",
+        "Oink! Hallo allemaal! Hebben we nog boodschappen of afspraken voor de lijst?",
+        "Hey Zwijnenberg! Fijn dat jullie er zijn. Waar kan ik mijn snuit vandaag in steken?"
+    ]
+    
+    # Kies een willekeurige begroeting als deze nog niet klaarstaat
+    if "huidige_begroeting" not in st.session_state:
+        st.session_state["huidige_begroeting"] = random.choice(begroetingen)
+
+    gekozen_tekst = st.session_state["huidige_begroeting"]
+    schone_begroeting = gekozen_tekst.replace("'", "").replace('"', '').replace('\n', ' ')
+
+    # Visualisaties & Afbeelding van Boris
+    st.markdown(f"""
+        <div class="boris-avatar-container">
+            <img src="https://backend.googleusercontent.com/image_generation_content/13078360598179837843.png" id="boris-main-img" class="boris-img boris-img-talking" alt="Boris het Gezinszwijn">
+            <h3 style="margin: 15px 0 0 0; color: #e65100;">"{gekozen_tekst}"</h3>
             <p style="color: #666; margin-top: 5px; font-size: 14px;">- Boris, jullie virtuele huiszwijn</p>
         </div>
     """, unsafe_allow_html=True)
+    
+    # JavaScript voor Auto-Play van de Begroeting & Bewegende Afbeelding
+    auto_greet_script = f"""
+    <script>
+    function spreekBegroeting() {{
+        let img = window.parent.document.getElementById('boris-main-img');
+        if(img) img.classList.add('boris-img-talking');
+        
+        window.speechSynthesis.cancel(); // Stop eerdere spraak
+        let speech = new SpeechSynthesisUtterance('{schone_begroeting}');
+        speech.lang = 'nl-NL';
+        speech.pitch = 1.2;
+        speech.rate = 0.95;
+        
+        speech.onend = function() {{
+            if(img) img.classList.remove('boris-img-talking');
+        }};
+        
+        window.speechSynthesis.speak(speech);
+    }}
+    
+    // Probeer direct af te spelen bij het laden
+    setTimeout(spreekBegroeting, 500);
+    </script>
+    
+    <div style="text-align: center; margin-bottom: 15px;">
+        <button onclick="spreekBegroeting()" style="background-color: #ffe0b2; border: 1px solid #ffb74d; border-radius: 20px; padding: 6px 16px; cursor: pointer; font-size: 13px; font-weight: bold; color: #e65100;">
+            🔊 Tik hier als Boris nog niet sprak
+        </button>
+    </div>
+    """
+    st.components.v1.html(auto_greet_script, height=60)
     
     # 2. CHAT MET BORIS
     st.subheader("💬 Vraag het aan Boris")
@@ -155,20 +209,30 @@ if pagina == "🏠 Home":
         avatar = "🐗" if msg["role"] == "assistant" else "👤"
         with st.chat_message(msg["role"], avatar=avatar):
             st.write(msg["content"])
-            # Als het bericht van Boris is, voeg optioneel een spraak-knop toe
+            
+            # Koppel spraak én mondanimatie aan de antwoorden van Boris
             if msg["role"] == "assistant":
                 schone_tekst = msg["content"].replace("'", "").replace('"', '').replace('\n', ' ')
                 tts_script = f"""
                 <button onclick="
+                    let img = window.parent.document.getElementById('boris-main-img');
+                    if(img) img.classList.add('boris-img-talking');
+                    
+                    window.speechSynthesis.cancel();
                     let speech = new SpeechSynthesisUtterance('{schone_tekst}');
                     speech.lang = 'nl-NL';
                     speech.pitch = 1.2;
+                    
+                    speech.onend = function() {{
+                        if(img) img.classList.remove('boris-img-talking');
+                    }};
+                    
                     window.speechSynthesis.speak(speech);
-                " style="background-color: #ffe0b2; border: none; border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 12px; margin-top: 5px;">
-                    🔊 Laat Boris praten
+                " style="background-color: #ffe0b2; border: 1px solid #ffb74d; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: bold; color: #e65100; margin-top: 5px;">
+                    🔊 Laat Boris praten & bewegen!
                 </button>
                 """
-                st.components.v1.html(tts_script, height=35)
+                st.components.v1.html(tts_script, height=45)
 
     # Chat-invoer
     if user_prompt := st.chat_input("Zeg bijvoorbeeld: 'Zet melk op de lijst' of 'Zet morgen zwemmen in de agenda'..."):
@@ -177,9 +241,8 @@ if pagina == "🏠 Home":
             st.write(user_prompt)
         
         with st.chat_message("assistant", avatar="🐗"):
-            with st.spinner("Boris beweegt z'n snuitje en denkt na... 🐗💭"):
+            with st.spinner("Boris knikt en antwoordt... 🐗💭"):
                 
-                # Zorg voor een strikte instructie aan Gemini
                 prompt = f"""
                 {GEZIN_CONTEXT}
                 Vandaag is {datetime.date.today().strftime('%Y-%m-%d')}.
@@ -197,7 +260,6 @@ if pagina == "🏠 Home":
                 """
                 
                 try:
-                    # Gebruik JSON mode van de Gemini API om crashes te voorkomen
                     response = client.models.generate_content(
                         model='gemini-2.5-flash',
                         contents=prompt,
@@ -218,12 +280,14 @@ if pagina == "🏠 Home":
 
                     eind_antwoord = data.get("antwoord", "Oink! Ik heb het voor je geregeld!") + actie_melding
                     
-                except Exception as e:
-                    # Fallback antwoord als er toch iets misgaat
-                    eind_antwoord = f"Oink! Ik luister naar je! (Invoer verwerkt)"
+                except Exception:
+                    eind_antwoord = "Oink! Ik luister naar je!"
 
                 st.write(eind_antwoord)
                 st.session_state["chat_messages"].append({"role": "assistant", "content": eind_antwoord})
+                
+                # Kies voor het volgende bezoek weer een nieuwe begroeting
+                st.session_state["huidige_begroeting"] = random.choice(begroetingen)
                 st.rerun()
 
     st.markdown("---")
