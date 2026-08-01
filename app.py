@@ -32,6 +32,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- INITIALISEER CLIENTS ---
+# Zorg dat "GEMINI_API_KEY" in st.secrets staat ingesteld
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 # --- LOKAAL JSON BEHEER ---
@@ -39,57 +40,62 @@ DATA_BESTAND = "gezin_data.json"
 
 def laad_data():
     if os.path.exists(DATA_BESTAND):
-        with open(DATA_BESTAND, "r", encoding="utf-8") as f:
-            return json.load(f)
-    else:
-        standaard_data = {
-            "agenda": [
-                {"datum": "2026-04-22", "beschrijving": "💍 Trouwdag Chiel & Angelica"},
-                {"datum": "2026-06-11", "beschrijving": "🎂 Verjaardag Duen (1 jr)"},
-                {"datum": "2026-10-24", "beschrijving": "🎂 Verjaardag Tygo (3 jr)"}
-            ],
-            "boodschappen": []
-        }
-        sla_data_op(standaard_data)
-        return standaard_data
+        try:
+            with open(DATA_BESTAND, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            pass
+            
+    standaard_data = {
+        "agenda": [
+            {"datum": "2026-04-22", "beschrijving": "💍 Trouwdag Chiel & Angelica"},
+            {"datum": "2026-06-11", "beschrijving": "🎂 Verjaardag Duen (1 jr)"},
+            {"datum": "2026-10-24", "beschrijving": "🎂 Verjaardag Tygo (3 jr)"}
+        ],
+        "boodschappen": []
+    }
+    sla_data_op(standaard_data)
+    return standaard_data
 
 def sla_data_op(data):
     with open(DATA_BESTAND, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-def laad_agenda_van_sheet():
-    data = laad_data()
-    return data.get("agenda", [])
+# --- SESSION STATE INITIALISATIE ---
+if "gezin_data" not in st.session_state:
+    st.session_state["gezin_data"] = laad_data()
 
-def laad_boodschappen_van_sheet():
-    data = laad_data()
-    return data.get("boodschappen", [])
+vandaag = datetime.date.today()
+if "kalender_jaar" not in st.session_state:
+    st.session_state["kalender_jaar"] = vandaag.year
+if "kalender_maand" not in st.session_state:
+    st.session_state["kalender_maand"] = vandaag.month
 
-def voeg_agenda_toe_aan_sheet(datum, beschrijving):
-    data = laad_data()
-    data["agenda"].append({"datum": datum, "beschrijving": beschrijving})
-    sla_data_op(data)
+# Helper functies direct op session_state
+def voeg_agenda_toe(datum, beschrijving):
+    st.session_state["gezin_data"]["agenda"].append({"datum": datum, "beschrijving": beschrijving})
+    sla_data_op(st.session_state["gezin_data"])
 
-def voeg_boodschap_toe_aan_sheet(item):
-    data = laad_data()
-    if "boodschappen" not in data:
-        data["boodschappen"] = []
-    data["boodschappen"].append(item)
-    sla_data_op(data)
+def voeg_boodschap_toe(item):
+    if "boodschappen" not in st.session_state["gezin_data"]:
+        st.session_state["gezin_data"]["boodschappen"] = []
+    st.session_state["gezin_data"]["boodschappen"].append(item)
+    sla_data_op(st.session_state["gezin_data"])
 
-def verwijder_boodschappen_uit_sheet(te_verwijderen_lijst):
-    data = laad_data()
-    huidige = data.get("boodschappen", [])
-    data["boodschappen"] = [item for item in huidige if item not in te_verwijderen_lijst]
-    sla_data_op(data)
+def verwijder_boodschappen_op_index(indices_om_te_verwijderen):
+    huidige = st.session_state["gezin_data"].get("boodschappen", [])
+    nieuwe_lijst = [item for i, item in enumerate(huidige) if i not in indices_om_te_verwijderen]
+    st.session_state["gezin_data"]["boodschappen"] = nieuwe_lijst
+    sla_data_op(st.session_state["gezin_data"])
 
 GEZIN_CONTEXT = (
     "Je bent Boris, de virtuele huiszwijn-assistent van het gezin Zwijnenberg: "
     "Chiel (geboren 13 juni 1989, 37 jaar) en Angelica (geboren 15 januari 1989, 37 jaar, getrouwd 22-04-2024), "
     "Tygo (geboren 24 oktober 2022, 3 jaar) en Duen (geboren 11 juni 2025, 1 jaar). "
-    "Je spreekt altijd een beetje vrolijk, behulpzaam en in karakter als een slim huiszwijn (gebruik af en toe een subtiele knipoog zoals 'Oink!')."
+    "Je spreekt altijd vrolijk, behulpzaam en in karakter als een slim huiszwijn (gebruik af en toe een subtiele knipoog zoals 'Oink!')."
 )
 
+# --- NAVIGATIE ---
 st.sidebar.title("🍳 Menu")
 pagina = st.sidebar.radio(
     "Ga naar:", 
@@ -102,22 +108,22 @@ pagina = st.sidebar.radio(
     ]
 )
 
+# --- 🏠 HOME ---
 if pagina == "🏠 Home":
     st.title("🏡 Zwijnenberg Home Hub & Boris")
-    st.write("Welkom thuis! Maak kennis met **Boris**, jullie persoonlijke virtuele zwijnen-assistent.")
+    st.write("Welkom thuis! Maak kennis met **Boris**, jullie persoonlijke virtuele zwijnen-assistent. *Oink!* 🐗")
     
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📌 Binnenkort")
-        vandaag = datetime.date.today()
-        agenda_data = laad_agenda_van_sheet()
+        agenda_data = st.session_state["gezin_data"].get("agenda", [])
         komende_items = []
         for item in agenda_data:
             try:
                 d_obj = datetime.datetime.strptime(str(item["datum"]), "%Y-%m-%d").date()
                 if d_obj >= vandaag:
                     komende_items.append({"datum": d_obj, "beschrijving": item["beschrijving"]})
-            except:
+            except ValueError:
                 pass
         
         gesorteerd = sorted(komende_items, key=lambda x: x["datum"])[:3]
@@ -129,50 +135,92 @@ if pagina == "🏠 Home":
 
     with col2:
         st.subheader("🛒 Boodschappen")
-        boodschappen_lijst = laad_boodschappen_van_sheet()
+        boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
         if boodschappen_lijst:
             st.write(f"Er staan momenteel **{len(boodschappen_lijst)} items** op de lijst.")
         else:
             st.write("De boodschappenlijst is helemaal leeg! 👍")
 
+# --- 🍳 RECEPTEN GENERATOR ---
 elif pagina == "🍳 Recepten Generator":
     st.title("🍳 Recepten Generator")
-    uploaded_file = st.file_uploader("Upload foto", type=["jpg", "jpeg", "png"])
-    if st.button("Genereer Maaltijdplan", type="primary") and uploaded_file:
-        with st.spinner("Boris bekijkt de foto..."):
-            contents = [GEZIN_CONTEXT, Image.open(uploaded_file), "Analyseer deze koelkastfoto en geef receptopties."]
-            response = client.models.generate_content(model='gemini-3.5-flash', contents=contents)
-            st.write(response.text)
+    uploaded_file = st.file_uploader("Upload foto van de koelkast", type=["jpg", "jpeg", "png"])
+    if st.button("Genereer Maaltijdplan", type="primary"):
+        if uploaded_file:
+            with st.spinner("Boris bekijkt de foto..."):
+                contents = [
+                    GEZIN_CONTEXT, 
+                    Image.open(uploaded_file), 
+                    "Analyseer deze koelkastfoto en geef 2 tot 3 lekkere receptopties geschikt voor het hele gezin."
+                ]
+                # Gebruik gemini-2.5-flash
+                response = client.models.generate_content(model='gemini-2.5-flash', contents=contents)
+                st.write(response.text)
+        else:
+            st.warning("Upload eerst een afbeelding!")
 
+# --- 🧾 KASSABON SCANNER ---
 elif pagina == "🧾 Kassabon Scanner":
     st.title("🧾 Kassabon Scanner")
     bon_file = st.file_uploader("Upload foto van de bon", type=["jpg", "jpeg", "png"])
-    if st.button("Scan Bon", type="primary") and bon_file:
-        with st.spinner("De bon wordt gelezen..."):
-            contents = [GEZIN_CONTEXT, Image.open(bon_file), "Lees deze kassabon uit voor de boodschappenlijst."]
-            response = client.models.generate_content(model='gemini-3.5-flash', contents=contents)
-            st.write(response.text)
+    if st.button("Scan Bon", type="primary"):
+        if bon_file:
+            with st.spinner("De bon wordt gelezen..."):
+                contents = [
+                    GEZIN_CONTEXT, 
+                    Image.open(bon_file), 
+                    "Lees deze kassabon uit en geef een overzichtelijke lijst van de gekochte artikelen en het totaalbedrag."
+                ]
+                # Gebruik gemini-2.5-flash
+                response = client.models.generate_content(model='gemini-2.5-flash', contents=contents)
+                st.write(response.text)
+        else:
+            st.warning("Upload eerst een kassabon!")
 
+# --- 📅 MAANDAGENDA & PLANNING ---
 elif pagina == "📅 Maandagenda & Planning":
     st.title("📅 Gezins Maandagenda")
 
-    with st.expander("➕ Voeg iets toe", expanded=False):
+    with st.expander("➕ Voeg een afspraak toe", expanded=False):
         with st.form("agenda_form", clear_on_submit=True):
-            nieuwe_datum = st.date_input("Datum", datetime.date.today())
+            nieuwe_datum = st.date_input("Datum", vandaag)
             nieuwe_beschrijving = st.text_input("Omschrijving")
             if st.form_submit_button("Toevoegen aan agenda") and nieuwe_beschrijving:
-                voeg_agenda_toe_aan_sheet(nieuwe_datum.strftime("%Y-%m-%d"), nieuwe_beschrijving)
+                voeg_agenda_toe(nieuwe_datum.strftime("%Y-%m-%d"), nieuwe_beschrijving)
                 st.success("Toegevoegd!")
                 st.rerun()
 
     st.markdown("---")
-    vandaag = datetime.date.today()
-    jaar, maand = vandaag.year, vandaag.month
-    maand_naam = vandaag.strftime("%B %Y")
 
-    st.subheader(f"📆 Kalenderoverzicht ({maand_naam})")
+    # Navigatieknoppen voor de kalender
+    col_prev, col_title, col_next = st.columns([1, 4, 1])
+    
+    with col_prev:
+        if st.button("⬅️ Vorige"):
+            if st.session_state["kalender_maand"] == 1:
+                st.session_state["kalender_maand"] = 12
+                st.session_state["kalender_jaar"] -= 1
+            else:
+                st.session_state["kalender_maand"] -= 1
+            st.rerun()
 
-    agenda_data = laad_agenda_van_sheet()
+    with col_next:
+        if st.button("Volgende ➡️"):
+            if st.session_state["kalender_maand"] == 12:
+                st.session_state["kalender_maand"] = 1
+                st.session_state["kalender_jaar"] += 1
+            else:
+                st.session_state["kalender_maand"] += 1
+            st.rerun()
+
+    jaar = st.session_state["kalender_jaar"]
+    maand = st.session_state["kalender_maand"]
+    maand_naam = calendar.month_name[maand]
+
+    with col_title:
+        st.subheader(f"📆 {maand_naam} {jaar}")
+
+    agenda_data = st.session_state["gezin_data"].get("agenda", [])
     agenda_dict = {}
     for item in agenda_data:
         d_str = str(item.get("datum", ""))
@@ -183,7 +231,6 @@ elif pagina == "📅 Maandagenda & Planning":
     cal = calendar.monthcalendar(jaar, maand)
     weekdagen = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"]
 
-    # Kalender kolommen geforceerd naast elkaar
     cols = st.columns(7)
     for i, dag_naam in enumerate(weekdagen):
         cols[i].markdown(f"<p style='text-align: center; font-weight: bold; font-size: 12px;'>{dag_naam}</p>", unsafe_allow_html=True)
@@ -202,8 +249,10 @@ elif pagina == "📅 Maandagenda & Planning":
 
                 bg_color = "#f0f2f6"
                 border_style = "1px solid #ddd"
-                if is_vandaag: border_style = "2px solid #ff4b4b"
-                if heeft_afspraak: bg_color = "#e6f3ff"
+                if is_vandaag: 
+                    border_style = "2px solid #ff4b4b"
+                if heeft_afspraak: 
+                    bg_color = "#e6f3ff"
 
                 inhoud_tekst = f"<b style='font-size: 12px;'>{dag}</b>"
                 if heeft_afspraak:
@@ -217,29 +266,33 @@ elif pagina == "📅 Maandagenda & Planning":
                 )
                 
     st.markdown("### Alle geplande items:")
-    for item in sorted(agenda_data, key=lambda x: str(x.get("datum", ""))):
+    gesorteerd_agenda = sorted(agenda_data, key=lambda x: str(x.get("datum", "")))
+    for item in gesorteerd_agenda:
         st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
+# --- 🛒 BOODSCHAPPENLIJSTJE ---
 elif pagina == "🛒 Boodschappenlijstje":
     st.title("🛒 Boodschappenlijstje")
-    nieuw_item = st.text_input("Voeg iets toe:")
-    if st.button("Toevoegen") and nieuw_item:
-        voeg_boodschap_toe_aan_sheet(nieuw_item)
-        st.success(f"'{nieuw_item}' toegevoegd!")
-        st.rerun()
+    
+    with st.form("boodschap_form", clear_on_submit=True):
+        nieuw_item = st.text_input("Voeg iets toe:")
+        if st.form_submit_button("Toevoegen") and nieuw_item:
+            voeg_boodschap_toe(nieuw_item)
+            st.success(f"'{nieuw_item}' toegevoegd!")
+            st.rerun()
 
-    boodschappen_lijst = laad_boodschappen_van_sheet()
+    boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
     if boodschappen_lijst:
         st.markdown("### Huidige lijst:")
-        te_verwijderen = []
+        indices_om_te_verwijderen = []
+        
         for idx, item in enumerate(boodschappen_lijst):
             if st.checkbox(item, key=f"boodschap_{idx}"):
-                te_verwijderen.append(item)
+                indices_om_te_verwijderen.append(idx)
         
-        if te_verwijderen and st.button("Verwijder aangevinkte items"):
-            verwijder_boodschappen_uit_sheet(te_verwijderen)
+        if indices_om_te_verwijderen and st.button("Verwijder aangevinkte items"):
+            verwijder_boodschappen_op_index(indices_om_te_verwijderen)
             st.success("Lijst bijgewerkt!")
             st.rerun()
     else:
         st.info("De lijst is leeg.")
-
