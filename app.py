@@ -10,6 +10,7 @@ import random
 import base64
 
 # --- PAGINA CONFIGURATIE ---
+# Dit stelt ook de favicon (het app-icoontje op je telefoon) in!
 st.set_page_config(
     page_title="Zwijnenberg Home Assist", 
     page_icon="boris.png", 
@@ -113,6 +114,12 @@ def voeg_boodschap_toe(item):
     st.session_state["gezin_data"]["boodschappen"].append(item)
     sla_data_op(st.session_state["gezin_data"])
 
+def verwijder_boodschappen_op_index(indices_om_te_verwijderen):
+    huidige = st.session_state["gezin_data"].get("boodschappen", [])
+    nieuwe_lijst = [item for i, item in enumerate(huidige) if i not in indices_om_te_verwijderen]
+    st.session_state["gezin_data"]["boodschappen"] = nieuwe_lijst
+    sla_data_op(st.session_state["gezin_data"])
+
 GEZIN_CONTEXT = (
     "Je bent Boris, de virtuele huiszwijn-assistent van het gezin Zwijnenberg: "
     "Chiel (geboren 13 juni 1989), Angelica (geboren 15 januari 1989, getrouwd 22-04-2024), "
@@ -130,10 +137,19 @@ pagina = st.sidebar.radio(
 # --- 🏠 HOME ---
 if pagina == "🏠 Home":
     
-    ONLINE_BORIS_URL = "https://i.ibb.co/6R2S8h2/boris-pig.jpg"
-    IMAGE_SRC = f"data:image/png;base64,{get_image_base64('boris.png')}" if os.path.exists("boris.png") else ONLINE_BORIS_URL
+    # 1. AFBEELDING INLADEN (Zoekt lokaal naar png of jpg, anders de reservefoto)
+    base64_boris = get_image_base64('boris.png')
+    base64_boris_jpg = get_image_base64('boris.jpg')
+    
+    if base64_boris:
+        IMAGE_SRC = f"data:image/png;base64,{base64_boris}"
+    elif base64_boris_jpg:
+        IMAGE_SRC = f"data:image/jpeg;base64,{base64_boris_jpg}"
+    else:
+        # Fallback foto van een varkentje als boris.png / boris.jpg ontbreekt
+        IMAGE_SRC = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Juliana_pig_in_straw.jpg/500px-Juliana_pig_in_straw.jpg"
 
-    # 1. 'GOEIEMORGEN' DASHBOARD
+    # 2. 'GOEIEMORGEN' DASHBOARD
     vandaag_str = vandaag.strftime("%Y-%m-%d")
     afspraken_vandaag = [item for item in st.session_state["gezin_data"]["agenda"] if item["datum"] == vandaag_str]
     
@@ -144,7 +160,7 @@ if pagina == "🏠 Home":
         </div>
     """, unsafe_allow_html=True)
 
-    # Begroeting
+    # 3. BEGROETING EN BORIS VISUALISATIE
     begroetingen = [
         "Hey familie Zwijnenberg! Oink! Waar kan ik jullie vandaag mee helpen?",
         "Oink oink! Welkom thuis Chiel, Angelica, Tygo en Duen!",
@@ -152,9 +168,10 @@ if pagina == "🏠 Home":
     ]
     if "huidige_begroeting" not in st.session_state:
         st.session_state["huidige_begroeting"] = random.choice(begroetingen)
+    
     gekozen_tekst = st.session_state["huidige_begroeting"]
+    schone_begroeting = gekozen_tekst.replace("'", "").replace('"', '').replace('\n', ' ')
 
-    # Boris Visualisatie
     st.markdown(f"""
         <div class="boris-avatar-container">
             <img src="{IMAGE_SRC}" id="boris-main-img" class="boris-img boris-img-talking" alt="Boris">
@@ -162,16 +179,46 @@ if pagina == "🏠 Home":
         </div>
     """, unsafe_allow_html=True)
     
-    # 2. DE KIDS KNOP (Voor Tygo & Duen)
+    # Auto-play TTS Script (Voor de begroeting)
+    auto_greet_script = f"""
+    <script>
+    function spreekBegroeting() {{
+        let img = window.parent.document.getElementById('boris-main-img');
+        if(img) img.classList.add('boris-img-talking');
+        
+        window.speechSynthesis.cancel();
+        let speech = new SpeechSynthesisUtterance('{schone_begroeting}');
+        speech.lang = 'nl-NL';
+        speech.pitch = 1.2;
+        speech.rate = 0.95;
+        
+        speech.onend = function() {{
+            if(img) img.classList.remove('boris-img-talking');
+        }};
+        
+        window.speechSynthesis.speak(speech);
+    }}
+    setTimeout(spreekBegroeting, 500);
+    </script>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button onclick="spreekBegroeting()" style="background-color: #ffe0b2; border: 1px solid #ffb74d; border-radius: 20px; padding: 8px 18px; cursor: pointer; font-size: 14px; font-weight: bold; color: #e65100;">
+            🔊 Tik hier als Boris nog niet sprak
+        </button>
+    </div>
+    """
+    st.components.v1.html(auto_greet_script, height=50)
+    
+    # 4. DE KIDS KNOP (Voor Tygo & Duen)
     if st.button("🐷 Vertel een verhaaltje voor Tygo & Duen!", use_container_width=True):
         with st.spinner("Boris verzint een verhaaltje..."):
             prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig en lief verhaaltje (max 4 zinnen) over wat jij (Boris) vandaag hebt uitgespookt. Richt je speciaal tot Tygo (3) en Duen (1)."
-            response = client.models.generate_content(model='gemini-3.5-flash', contents=prompt)
+            response = client.models.generate_content(model='gemini-1.5-flash', contents=prompt)
             st.success(response.text)
             
     st.markdown("---")
     
-    # 3. SPRAAK & CHAT MET BORIS
+    # 5. SPRAAK & CHAT MET BORIS
     st.subheader("💬 Vraag het aan Boris")
     
     if "chat_messages" not in st.session_state:
@@ -180,13 +227,36 @@ if pagina == "🏠 Home":
     for msg in st.session_state["chat_messages"]:
         with st.chat_message(msg["role"], avatar="🐗" if msg["role"] == "assistant" else "👤"):
             st.write(msg["content"])
+            
+            # Spraakknop voor eerdere berichten
+            if msg["role"] == "assistant":
+                schone_tekst = msg["content"].replace("'", "").replace('"', '').replace('\n', ' ')
+                tts_script = f"""
+                <button onclick="
+                    let img = window.parent.document.getElementById('boris-main-img');
+                    if(img) img.classList.add('boris-img-talking');
+                    
+                    window.speechSynthesis.cancel();
+                    let speech = new SpeechSynthesisUtterance('{schone_tekst}');
+                    speech.lang = 'nl-NL';
+                    speech.pitch = 1.2;
+                    
+                    speech.onend = function() {{
+                        if(img) img.classList.remove('boris-img-talking');
+                    }};
+                    
+                    window.speechSynthesis.speak(speech);
+                " style="background-color: #ffe0b2; border: 1px solid #ffb74d; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: bold; color: #e65100; margin-top: 5px;">
+                    🔊 Laat Boris praten & bewegen!
+                </button>
+                """
+                st.components.v1.html(tts_script, height=45)
 
     # Spraakinvoer (vereist moderne Streamlit versie)
     audio_value = st.audio_input("🎙️ Spreek tegen Boris (werkt op mobiel!)")
     user_prompt = st.chat_input("Of typ je bericht hier...")
 
     if audio_value or user_prompt:
-        # Bepaal de input (audio of tekst)
         if audio_value:
             audio_part = types.Part.from_bytes(data=audio_value.read(), mime_type='audio/wav')
             input_content = [GEZIN_CONTEXT, "Luister naar de audio en reageer alsof het getypt was.", audio_part]
@@ -215,13 +285,13 @@ if pagina == "🏠 Home":
                 try:
                     if audio_value:
                         response = client.models.generate_content(
-                            model='gemini-3.5-flash',
+                            model='gemini-1.5-flash',
                             contents=[*input_content, instructie],
                             config={'response_mime_type': 'application/json'}
                         )
                     else:
                         response = client.models.generate_content(
-                            model='gemini-3.5-flash',
+                            model='gemini-1.5-flash',
                             contents=input_content + "\n" + instructie,
                             config={'response_mime_type': 'application/json'}
                         )
@@ -258,28 +328,26 @@ elif pagina == "🍳 Recepten Generator":
                     GEZIN_CONTEXT, Image.open(uploaded_file), 
                     "Geef 2 receptopties. Eindig je bericht met een JSON-lijst van ingrediënten die waarschijnlijk nog gekocht moeten worden in deze structuur: {'boodschappen': ['item1', 'item2']}"
                 ]
-                response = client.models.generate_content(model='gemini-3.5-flash', contents=contents)
+                response = client.models.generate_content(model='gemini-1.5-flash', contents=contents)
                 
                 # Sla het antwoord op in session state
                 st.session_state["laatste_recept"] = response.text
         else:
             st.warning("Upload eerst een afbeelding!")
 
-    # 4. SLIMME KOPPELING NAAR BOODSCHAPPENLIJST
+    # SLIMME KOPPELING NAAR BOODSCHAPPENLIJST
     if "laatste_recept" in st.session_state:
         st.markdown("### Jouw Recepten:")
         
-        # Probeer de JSON lijst eruit te filteren
         tekst = st.session_state["laatste_recept"]
         boodschappen_gevonden = []
         try:
-            # Zoek naar alles tussen { en } aan het einde van het bericht
             if "{" in tekst and "}" in tekst:
                 json_str = "{" + tekst.split("{")[-1].split("}")[0] + "}"
                 data = json.loads(json_str.replace("'", '"'))
                 if "boodschappen" in data:
                     boodschappen_gevonden = data["boodschappen"]
-                tekst = tekst.replace(json_str, "") # Verberg de JSON voor de gebruiker
+                tekst = tekst.replace(json_str, "")
         except:
             pass
 
@@ -291,32 +359,136 @@ elif pagina == "🍳 Recepten Generator":
                 for item in boodschappen_gevonden:
                     voeg_boodschap_toe(item)
                 st.toast("Toegevoegd aan de lijst!", icon="✅")
-                del st.session_state["laatste_recept"] # Reset na toevoegen
+                del st.session_state["laatste_recept"]
                 st.rerun()
 
-# --- ANDERE PAGINA'S (KASSABON, AGENDA, BOODSCHAPPEN) ---
-# (De rest van de code voor deze pagina's blijft exact hetzelfde als in de vorige versie, 
-# om het script niet onnodig complex te maken. Ik heb hier de ruimte bespaard, 
-# maar je kunt ze 1-op-1 kopiëren uit het eerdere bericht!)
+# --- 🧾 KASSABON SCANNER ---
 elif pagina == "🧾 Kassabon Scanner":
     st.title("🧾 Kassabon Scanner")
     bon_file = st.file_uploader("Upload foto van de bon", type=["jpg", "jpeg", "png"])
     if st.button("Scan Bon", type="primary") and bon_file:
         with st.spinner("Bon wordt gelezen..."):
             response = client.models.generate_content(
-                model='gemini-3.5-flash', 
+                model='gemini-1.5-flash', 
                 contents=[GEZIN_CONTEXT, Image.open(bon_file), "Lees de bon en geef het totaalbedrag."]
             )
             st.write(response.text)
 
+# --- 📅 MAANDAGENDA ---
 elif pagina == "📅 Maandagenda":
-    st.title("📅 Maandagenda")
-    st.info("Ga naar de chat op de Home pagina en zeg 'Zet morgen zwemmen in de agenda' om iets toe te voegen!")
-    for item in sorted(st.session_state["gezin_data"]["agenda"], key=lambda x: x["datum"]):
-        st.markdown(f"🗓️ **{item['datum']}**: {item['beschrijving']}")
+    st.title("📅 Maandagenda & Planning")
+    
+    with st.expander("➕ Voeg een afspraak toe", expanded=False):
+        with st.form("agenda_form", clear_on_submit=True):
+            nieuwe_datum = st.date_input("Datum", vandaag)
+            nieuwe_beschrijving = st.text_input("Omschrijving")
+            if st.form_submit_button("Toevoegen aan agenda") and nieuwe_beschrijving:
+                voeg_agenda_toe(nieuwe_datum.strftime("%Y-%m-%d"), nieuwe_beschrijving)
+                st.success("Toegevoegd!")
+                st.rerun()
 
+    st.markdown("---")
+
+    col_prev, col_title, col_next = st.columns([1, 4, 1])
+    
+    with col_prev:
+        if st.button("⬅️ Vorige"):
+            if st.session_state["kalender_maand"] == 1:
+                st.session_state["kalender_maand"] = 12
+                st.session_state["kalender_jaar"] -= 1
+            else:
+                st.session_state["kalender_maand"] -= 1
+            st.rerun()
+
+    with col_next:
+        if st.button("Volgende ➡️"):
+            if st.session_state["kalender_maand"] == 12:
+                st.session_state["kalender_maand"] = 1
+                st.session_state["kalender_jaar"] += 1
+            else:
+                st.session_state["kalender_maand"] += 1
+            st.rerun()
+
+    jaar = st.session_state["kalender_jaar"]
+    maand = st.session_state["kalender_maand"]
+    maand_naam = calendar.month_name[maand]
+
+    with col_title:
+        st.subheader(f"📆 {maand_naam} {jaar}")
+
+    agenda_data = st.session_state["gezin_data"].get("agenda", [])
+    agenda_dict = {}
+    for item in agenda_data:
+        d_str = str(item.get("datum", ""))
+        if d_str not in agenda_dict:
+            agenda_dict[d_str] = []
+        agenda_dict[d_str].append(item.get("beschrijving", ""))
+
+    cal = calendar.monthcalendar(jaar, maand)
+    weekdagen = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"]
+
+    cols = st.columns(7)
+    for i, dag_naam in enumerate(weekdagen):
+        cols[i].markdown(f"<p style='text-align: center; font-weight: bold; font-size: 12px;'>{dag_naam}</p>", unsafe_allow_html=True)
+
+    for week in cal:
+        cols = st.columns(7)
+        for i, dag in enumerate(week):
+            if dag == 0:
+                cols[i].markdown("<div style='padding: 5px; text-align: center; color: #ccc;'>-</div>", unsafe_allow_html=True)
+            else:
+                huidige_datum_obj = datetime.date(jaar, maand, dag)
+                datum_sleutel = huidige_datum_obj.strftime("%Y-%m-%d")
+                
+                is_vandaag = (huidige_datum_obj == vandaag)
+                heeft_afspraak = datum_sleutel in agenda_dict
+
+                bg_color = "#f0f2f6"
+                border_style = "1px solid #ddd"
+                if is_vandaag: 
+                    border_style = "2px solid #ff4b4b"
+                if heeft_afspraak: 
+                    bg_color = "#e6f3ff"
+
+                inhoud_tekst = f"<b style='font-size: 12px;'>{dag}</b>"
+                if heeft_afspraak:
+                    inhoud_tekst += "<br><span style='font-size: 9px; color: #0066cc;'>📌</span>"
+
+                cols[i].markdown(
+                    f"""<div style="background-color: {bg_color}; border: {border_style}; border-radius: 4px; padding: 4px; text-align: center; min-height: 35px; margin-bottom: 2px;">
+                        {inhoud_tekst}
+                    </div>""", 
+                    unsafe_allow_html=True
+                )
+                
+    st.markdown("### Alle geplande items:")
+    gesorteerd_agenda = sorted(agenda_data, key=lambda x: str(x.get("datum", "")))
+    for item in gesorteerd_agenda:
+        st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
+
+# --- 🛒 BOODSCHAPPENLIJSTJE ---
 elif pagina == "🛒 Boodschappenlijstje":
     st.title("🛒 Boodschappenlijstje")
-    st.info("Zeg tegen Boris op de Home pagina: 'Voeg melk toe aan de lijst'")
-    for item in st.session_state["gezin_data"]["boodschappen"]:
-        st.markdown(f"✅ {item}")
+    
+    with st.form("boodschap_form", clear_on_submit=True):
+        nieuw_item = st.text_input("Voeg iets toe:")
+        if st.form_submit_button("Toevoegen") and nieuw_item:
+            voeg_boodschap_toe(nieuw_item)
+            st.success(f"'{nieuw_item}' toegevoegd!")
+            st.rerun()
+
+    boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
+    if boodschappen_lijst:
+        st.markdown("### Huidige lijst:")
+        indices_om_te_verwijderen = []
+        
+        for idx, item in enumerate(boodschappen_lijst):
+            if st.checkbox(item, key=f"boodschap_{idx}"):
+                indices_om_te_verwijderen.append(idx)
+        
+        if indices_om_te_verwijderen and st.button("Verwijder aangevinkte items"):
+            verwijder_boodschappen_op_index(indices_om_te_verwijderen)
+            st.success("Lijst bijgewerkt!")
+            st.rerun()
+    else:
+        st.info("De lijst is leeg.")
