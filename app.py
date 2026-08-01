@@ -12,7 +12,7 @@ import base64
 # --- PAGINA CONFIGURATIE ---
 st.set_page_config(
     page_title="Zwijnenberg Home Assist", 
-    page_icon="boris.png", 
+    page_icon="Boris.png", 
     layout="wide"
 )
 
@@ -133,8 +133,8 @@ pagina = st.sidebar.radio(
 # --- 🏠 HOME ---
 if pagina == "🏠 Home":
     
-    base64_boris = get_image_base64('boris.png')
-    base64_boris_jpg = get_image_base64('boris.jpg')
+    base64_boris = get_image_base64('Boris.png')
+    base64_boris_jpg = get_image_base64('Boris.jpg')
     
     if base64_boris:
         IMAGE_SRC = f"data:image/png;base64,{base64_boris}"
@@ -155,7 +155,7 @@ if pagina == "🏠 Home":
 
     begroetingen = [
         "Hey familie Zwijnenberg! Oink! Waar kan ik jullie vandaag mee helpen?",
-        "Oink oink! Welkom thuis Chiel, Angelica, Tygo en Duen!",
+        "Oink oink! Familie Zwijnenberg!",
         "Goedendag Zwijnenbergjes! Boris staat voor jullie klaar."
     ]
     if "huidige_begroeting" not in st.session_state:
