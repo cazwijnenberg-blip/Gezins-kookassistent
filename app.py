@@ -6,11 +6,27 @@ import calendar
 import json
 import os
 import random
+import base64
 
 # --- PAGINA CONFIGURATIE ---
 st.set_page_config(page_title="Zwijnenberg home assist", page_icon="🐗", layout="wide")
 
-# --- MOBIELE VORMGEVING, CSS OPTIMALISATIE & MIMIC ANIMATIES ---
+# --- HELPER OM AFBEELDING OM TE ZETTEN NAAR BASE64 ---
+def get_image_base64(image_path):
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode('utf-8')
+    return None
+
+# Sla de foto op als 'boris.png' in dezelfde map als dit Python-script!
+BORIS_B64 = get_image_base64("boris.png")
+if BORIS_B64:
+    IMAGE_SRC = f"data:image/png;base64,{BORIS_B64}"
+else:
+    # Fallback link als de lokale foto nog niet is toegevoegd
+    IMAGE_SRC = "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f417.png"
+
+# --- MOBIELE VORMGEVING & PRATENDE ANIMATIE ---
 st.markdown("""
     <style>
     @media (max-width: 768px) {
@@ -33,8 +49,8 @@ st.markdown("""
     /* ANIMATIE VOOR PRATENDE BORIS */
     @keyframes boris-talking {
         0% { transform: translateY(0px) scale(1); }
-        25% { transform: translateY(-3px) scale(1.02) rotate(-1deg); }
-        50% { transform: translateY(2px) scale(0.99) rotate(1deg); }
+        25% { transform: translateY(-4px) scale(1.02) rotate(-1deg); }
+        50% { transform: translateY(3px) scale(0.99) rotate(1deg); }
         75% { transform: translateY(-2px) scale(1.01) rotate(-0.5deg); }
         100% { transform: translateY(0px) scale(1); }
     }
@@ -49,13 +65,13 @@ st.markdown("""
     }
     .boris-img {
         width: 100%;
-        max-width: 450px;
+        max-width: 480px;
         border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         transition: transform 0.3s ease;
     }
     .boris-img-talking {
-        animation: boris-talking 0.4s infinite ease-in-out;
+        animation: boris-talking 0.35s infinite ease-in-out;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -141,7 +157,7 @@ pagina = st.sidebar.radio(
 if pagina == "🏠 Home":
     st.title("🏡 Zwijnenberg Home Hub & Boris")
     
-    # 1. GEVARIERDE BEGROETINGEN VOOR BORIS
+    # Begroetingen
     begroetingen = [
         "Hey familie Zwijnenberg! Oink! Waar kan ik jullie vandaag mee helpen?",
         "Oink oink! Welkom thuis Chiel, Angelica, Tygo en Duen! Wat gaan we doen vandaag?",
@@ -150,30 +166,29 @@ if pagina == "🏠 Home":
         "Hey Zwijnenberg! Fijn dat jullie er zijn. Waar kan ik mijn snuit vandaag in steken?"
     ]
     
-    # Kies een willekeurige begroeting als deze nog niet klaarstaat
     if "huidige_begroeting" not in st.session_state:
         st.session_state["huidige_begroeting"] = random.choice(begroetingen)
 
     gekozen_tekst = st.session_state["huidige_begroeting"]
     schone_begroeting = gekozen_tekst.replace("'", "").replace('"', '').replace('\n', ' ')
 
-    # Visualisaties & Afbeelding van Boris
+    # Boris Afbeelding & Visualisatie
     st.markdown(f"""
         <div class="boris-avatar-container">
-            <img src="https://backend.googleusercontent.com/image_generation_content/13078360598179837843.png" id="boris-main-img" class="boris-img boris-img-talking" alt="Boris het Gezinszwijn">
+            <img src="{IMAGE_SRC}" id="boris-main-img" class="boris-img boris-img-talking" alt="Boris het Gezinszwijn">
             <h3 style="margin: 15px 0 0 0; color: #e65100;">"{gekozen_tekst}"</h3>
             <p style="color: #666; margin-top: 5px; font-size: 14px;">- Boris, jullie virtuele huiszwijn</p>
         </div>
     """, unsafe_allow_html=True)
     
-    # JavaScript voor Auto-Play van de Begroeting & Bewegende Afbeelding
+    # Auto-play Audio Script
     auto_greet_script = f"""
     <script>
     function spreekBegroeting() {{
         let img = window.parent.document.getElementById('boris-main-img');
         if(img) img.classList.add('boris-img-talking');
         
-        window.speechSynthesis.cancel(); // Stop eerdere spraak
+        window.speechSynthesis.cancel();
         let speech = new SpeechSynthesisUtterance('{schone_begroeting}');
         speech.lang = 'nl-NL';
         speech.pitch = 1.2;
@@ -185,8 +200,6 @@ if pagina == "🏠 Home":
         
         window.speechSynthesis.speak(speech);
     }}
-    
-    // Probeer direct af te spelen bij het laden
     setTimeout(spreekBegroeting, 500);
     </script>
     
@@ -196,21 +209,19 @@ if pagina == "🏠 Home":
         </button>
     </div>
     """
-    st.components.v1.html(auto_greet_script, height=60)
+    st.components.v1.html(auto_greet_script, height=50)
     
-    # 2. CHAT MET BORIS
+    # Chat met Boris
     st.subheader("💬 Vraag het aan Boris")
     
     if "chat_messages" not in st.session_state:
         st.session_state["chat_messages"] = []
 
-    # Toon chatgeschiedenis
     for idx, msg in enumerate(st.session_state["chat_messages"]):
         avatar = "🐗" if msg["role"] == "assistant" else "👤"
         with st.chat_message(msg["role"], avatar=avatar):
             st.write(msg["content"])
             
-            # Koppel spraak én mondanimatie aan de antwoorden van Boris
             if msg["role"] == "assistant":
                 schone_tekst = msg["content"].replace("'", "").replace('"', '').replace('\n', ' ')
                 tts_script = f"""
@@ -234,7 +245,6 @@ if pagina == "🏠 Home":
                 """
                 st.components.v1.html(tts_script, height=45)
 
-    # Chat-invoer
     if user_prompt := st.chat_input("Zeg bijvoorbeeld: 'Zet melk op de lijst' of 'Zet morgen zwemmen in de agenda'..."):
         st.session_state["chat_messages"].append({"role": "user", "content": user_prompt})
         with st.chat_message("user", avatar="👤"):
@@ -285,14 +295,11 @@ if pagina == "🏠 Home":
 
                 st.write(eind_antwoord)
                 st.session_state["chat_messages"].append({"role": "assistant", "content": eind_antwoord})
-                
-                # Kies voor het volgende bezoek weer een nieuwe begroeting
                 st.session_state["huidige_begroeting"] = random.choice(begroetingen)
                 st.rerun()
 
     st.markdown("---")
 
-    # 3. OVERZICHT BINNENKORT & BOODSCHAPPEN
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📌 Binnenkort")
