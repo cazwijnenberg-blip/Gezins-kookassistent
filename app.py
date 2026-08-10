@@ -139,7 +139,7 @@ def genereer_tts_script(tekst, knop_tekst="🎙️", img_id="Boris-main-img"):
 
 
 # ==========================================
-# HOOFDSCHERM (GROENE TEGELS & AI BORIS)
+# HOOFDSCHERM
 # ==========================================
 if st.session_state["huidige_pagina"] == "Home":
     st.markdown("""
@@ -189,7 +189,6 @@ if st.session_state["huidige_pagina"] == "Home":
         </style>
     """, unsafe_allow_html=True)
 
-    # Header met datum in rechterbovenhoek
     col_titel, col_datum = st.columns([3, 1])
     with col_titel:
         st.markdown("### 🏠 Zwijnenberg")
@@ -200,12 +199,8 @@ if st.session_state["huidige_pagina"] == "Home":
     aantal_boodschappen = len(st.session_state["gezin_data"]["boodschappen"])
     aantal_afspraken_komend = len([a for a in st.session_state["gezin_data"]["agenda"] if a["datum"] >= vandaag_str])
 
-    # Digitale AI-avatar stijl voor Boris
     base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-    if base64_Boris:
-        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}"
-    else:
-        IMAGE_SRC = "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop" # Strakke AI-achtige digitale look
+    IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     
@@ -244,7 +239,7 @@ if st.session_state["huidige_pagina"] == "Home":
 
 
 # ==========================================
-# SUBPAGINA: AGENDA (ZONDER DUBBELE TITEL)
+# SUBPAGINA: AGENDA
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Agenda":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -329,7 +324,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# OVERIGE SUBPAGINA'S (ZONDER DUBBELE TITEL)
+# OVERIGE SUBPAGINA'S
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -384,11 +379,16 @@ elif st.session_state["huidige_pagina"] == "Chat":
 elif st.session_state["huidige_pagina"] == "Recepten":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
-    uploaded_file = st.file_uploader("Upload foto van je voorraad", type=["jpg", "png"])
-    if st.button("Genereer Recepten", type="primary") and uploaded_file:
+    # Direct foto maken of uploaden via de telefoon camera!
+    camera_file = st.camera_input("📸 Maak direct een foto van je voorraad")
+    uploaded_file = st.file_uploader("Of kies een foto uit je galerij", type=["jpg", "png"])
+    
+    gekozen_foto = camera_file if camera_file is not None else uploaded_file
+
+    if st.button("Genereer Recepten", type="primary") and gekozen_foto:
         with st.spinner("Boris snuffelt..."):
             prompt = f"{GEZIN_CONTEXT}\nKijk naar de foto. Verzin 2 recepten die bederf tegengaan, geschikt voor kinderen (3 en 1). Eindig met JSON: {{\"boodschappen\": [\"item\"]}}."
-            res = client.models.generate_content(model='gemini-3.5-flash', contents=[prompt, Image.open(uploaded_file)])
+            res = client.models.generate_content(model='gemini-3.5-flash', contents=[prompt, Image.open(gekozen_foto)])
             st.session_state["laatste_recept"] = res.text
             
     if "laatste_recept" in st.session_state:
@@ -408,10 +408,13 @@ elif st.session_state["huidige_pagina"] == "Recepten":
 elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
-    bon = st.file_uploader("Upload je bon", type=["jpg", "png"])
-    if st.button("Scan", type="primary") and bon:
+    camera_bon = st.camera_input("📸 Maak direct een foto van je bon")
+    uploaded_bon = st.file_uploader("Of upload je bon", type=["jpg", "png"])
+    gekozen_bon = camera_bon if camera_bon is not None else uploaded_bon
+
+    if st.button("Scan", type="primary") and gekozen_bon:
         with st.spinner("Scannen..."):
-            res = client.models.generate_content(model='gemini-3.5-flash', contents=[f"{GEZIN_CONTEXT} Vat deze bon samen en markeer het totaalbedrag.", Image.open(bon)])
+            res = client.models.generate_content(model='gemini-3.5-flash', contents=[f"{GEZIN_CONTEXT} Vat deze bon samen en markeer het totaalbedrag.", Image.open(gekozen_bon)])
             st.write(res.text)
 
 elif st.session_state["huidige_pagina"] == "Kids":
