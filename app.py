@@ -18,7 +18,6 @@ st.set_page_config(
 )
 
 # --- BROWSER HISTORY & BACK-BUTTON FIX ---
-# Koppel de navigatie aan de URL param 'pagina' zodat de terugknop van de telefoon werkt!
 query_pagina = st.query_params.get("pagina", "Home")
 
 if "huidige_pagina" not in st.session_state or st.session_state["huidige_pagina"] != query_pagina:
@@ -46,10 +45,8 @@ def get_image_base64(image_path):
 # --- ALGEMENE STYLING ---
 st.markdown("""
     <style>
-    /* Verberg de zijbalk toggle knop volledig */
     [data-testid="collapsedControl"] { display: none; }
     
-    /* Animatie Boris (voor subpagina's) */
     @keyframes avatar-talking {
         0% { transform: translateY(0px) scale(1) rotate(0deg); }
         20% { transform: translateY(-3px) scale(1.02) rotate(-1deg); }
@@ -134,7 +131,7 @@ def genereer_tts_script(tekst, knop_tekst="🎙️", img_id="Boris-main-img"):
     }}
     </script>
     <div style="text-align: center; margin-top: 5px;">
-        <button onclick="spreekTekst('{schone_tekst}')" style="background-color: #ffe0b2; border: 1px solid #ffb74d; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; color: #e65100; width: 100%; padding: 8px;">
+        <button onclick="spreekTekst('{schone_tekst}')" style="background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; color: #2e7d32; width: 100%; padding: 8px;">
             {knop_tekst}
         </button>
     </div>
@@ -142,24 +139,22 @@ def genereer_tts_script(tekst, knop_tekst="🎙️", img_id="Boris-main-img"):
 
 
 # ==========================================
-# HOOFDSCHERM (VOLLEDIG KLIKBARE TEGELS)
+# HOOFDSCHERM (GROENE TEGELS & AI BORIS)
 # ==========================================
 if st.session_state["huidige_pagina"] == "Home":
-    # Specifieke CSS alléén voor het homescherm, zodat knoppen op subpagina's normaal blijven
     st.markdown("""
         <style>
-        /* Tegels = Buttons. Maakt de hele knop gecentreerd en responsive */
         .stButton > button {
             width: 100%;
             min-height: 120px;
-            white-space: pre-wrap !important; /* Behoudt de enters (\\n) in de tekst! */
+            white-space: pre-wrap !important;
             border-radius: 16px;
-            border: 1px solid #e0e0e0;
-            background-color: #ffffff;
+            border: 1px solid #c8e6c9;
+            background-color: #f1f8f5;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             transition: all 0.2s ease-in-out;
             font-size: 1.1rem;
-            color: #333;
+            color: #1b5e20;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -168,13 +163,12 @@ if st.session_state["huidige_pagina"] == "Home":
         }
         
         .stButton > button:hover, .stButton > button:active {
-            border-color: #ffb74d;
-            color: #e65100;
-            background-color: #fff8e1;
-            transform: scale(0.98); /* Klik-effect */
+            border-color: #81c784;
+            color: #004d40;
+            background-color: #e8f5e9;
+            transform: scale(0.98);
         }
         
-        /* Mobiele 3x3 layout forcering */
         @media (max-width: 768px) {
             div[data-testid="stHorizontalBlock"] {
                 flex-wrap: wrap !important;
@@ -195,23 +189,30 @@ if st.session_state["huidige_pagina"] == "Home":
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"### 🏡 Zwijnenberg <span style='font-size: 14px; color: #666;'>| {vandaag.strftime('%d-%m-%Y')}</span>", unsafe_allow_html=True)
+    # Header met datum in rechterbovenhoek
+    col_titel, col_datum = st.columns([3, 1])
+    with col_titel:
+        st.markdown("### 🏠 Zwijnenberg")
+    with col_datum:
+        st.markdown(f"<p style='text-align: right; font-size: 13px; color: #666; margin-top: 10px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
     vandaag_str = vandaag.strftime("%Y-%m-%d")
     aantal_boodschappen = len(st.session_state["gezin_data"]["boodschappen"])
     aantal_afspraken_komend = len([a for a in st.session_state["gezin_data"]["agenda"] if a["datum"] >= vandaag_str])
 
+    # Digitale AI-avatar stijl voor Boris
     base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-    IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Juliana_pig_in_straw.jpg/500px-Juliana_pig_in_straw.jpg"
+    if base64_Boris:
+        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}"
+    else:
+        IMAGE_SRC = "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop" # Strakke AI-achtige digitale look
 
-    # Het raster (wordt door CSS 3x2 / 3x3 op mobiel)
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     
     with c1:
-        # Boris afbeelding bovenaan de knop
         st.markdown(f"""
             <div style="text-align: center; margin-bottom: 5px;">
-                <img src="{IMAGE_SRC}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <img src="{IMAGE_SRC}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border: 2px solid #81c784; box-shadow: 0 0 10px rgba(129,199,132,0.5);">
             </div>
         """, unsafe_allow_html=True)
         if st.button("💬 **Chat**\n\nmet Boris", key="btn_chat", use_container_width=True):
@@ -243,11 +244,10 @@ if st.session_state["huidige_pagina"] == "Home":
 
 
 # ==========================================
-# SUBPAGINA: AGENDA (HTML KALENDER)
+# SUBPAGINA: AGENDA (ZONDER DUBBELE TITEL)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Agenda":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    st.title("📅 Gezinsagenda")
     
     st.markdown("#### ➕ Nieuwe afspraak")
     with st.form("agenda_form", clear_on_submit=True):
@@ -329,11 +329,10 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# OVERIGE SUBPAGINA'S
+# OVERIGE SUBPAGINA'S (ZONDER DUBBELE TITEL)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    st.title("🛒 Boodschappenlijst")
     
     with st.form("boodschap_form", clear_on_submit=True):
         nieuw_item = st.text_input("Wat moet er gehaald worden?")
@@ -356,7 +355,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
 
 elif st.session_state["huidige_pagina"] == "Chat":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    st.title("💬 Chat met Boris")
     
     if "chat_messages" not in st.session_state: st.session_state["chat_messages"] = []
     for msg in st.session_state["chat_messages"]:
@@ -385,7 +383,6 @@ elif st.session_state["huidige_pagina"] == "Chat":
 
 elif st.session_state["huidige_pagina"] == "Recepten":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    st.title("🍳 Slimme Recepten")
     
     uploaded_file = st.file_uploader("Upload foto van je voorraad", type=["jpg", "png"])
     if st.button("Genereer Recepten", type="primary") and uploaded_file:
@@ -410,7 +407,7 @@ elif st.session_state["huidige_pagina"] == "Recepten":
 
 elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    st.title("🧾 Scanner")
+    
     bon = st.file_uploader("Upload je bon", type=["jpg", "png"])
     if st.button("Scan", type="primary") and bon:
         with st.spinner("Scannen..."):
@@ -419,13 +416,13 @@ elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
 
 elif st.session_state["huidige_pagina"] == "Kids":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    st.title("🧸 Verhaaltje")
+    
     if 'laatste_verhaaltje' in st.session_state:
         base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Juliana_pig_in_straw.jpg/500px-Juliana_pig_in_straw.jpg"
+        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
         st.markdown(f"""
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="{IMAGE_SRC}" id="Boris-kids-img" class="Boris-img-mini" alt="Boris" style="width: 150px; height: 150px; border-radius:50%; object-fit:cover;">
+                <img src="{IMAGE_SRC}" id="Boris-kids-img" class="Boris-img-mini" alt="Boris" style="width: 150px; height: 150px; border-radius:50%; object-fit:cover; border: 3px solid #81c784;">
             </div>
         """, unsafe_allow_html=True)
         st.success(st.session_state['laatste_verhaaltje'])
