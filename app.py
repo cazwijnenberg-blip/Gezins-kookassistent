@@ -54,45 +54,45 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (EXACT 2 KOLOMMEN AFDWINGEN OOK OP MOBIEL) ---
+# --- STYLING (AFDWINGEN VAN KOLOMMEN OP MOBIEL + COMPACTE TEGELS) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
     
-    /* Dwing 2 kolommen af op ELK scherm formaat (ook mobiel) */
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(2)) {
+    /* Dwing horizontale blokken af om NIET te stapelen op mobiel */
+    div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 10px !important;
+        gap: 6px !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(2)) > div[data-testid="column"] {
-        width: 50% !important;
+    
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         min-width: 0px !important;
-        flex: 1 1 50% !important;
+        flex: 1 1 0px !important;
     }
 
-    /* Tegelknoppen Stijl (Muntgroen, afgerond, donkergroen) */
+    /* Tegelknoppen Stijl (Compact voor 4x4 weergave) */
     .stButton > button {
         width: 100% !important;
-        min-height: 100px !important;
+        min-height: 65px !important; /* Compacter gemaakt tegen scrollen */
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
-        border-radius: 20px !important;
+        border-radius: 12px !important;
         border: 1px solid #D2E7D6 !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
-        transition: transform 0.15s ease, background-color 0.15s ease !important;
-        font-size: 1rem !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+        transition: transform 0.1s ease, background-color 0.1s ease !important;
+        font-size: 0.8rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
-        padding: 12px !important;
-        margin-bottom: 8px !important;
-        line-height: 1.3 !important;
+        padding: 4px 2px !important;
+        margin-bottom: 4px !important;
+        line-height: 1.1 !important;
     }
 
     .stButton > button:hover, .stButton > button:active {
-        transform: scale(0.98) !important;
+        transform: scale(0.97) !important;
         background-color: #E1F0E6 !important;
         border-color: #2E7D32 !important;
         color: #0E331A !important;
@@ -213,7 +213,6 @@ GEZIN_CONTEXT = (
 )
 
 def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-main-img", auto_play=False):
-    """Genereert TTS script met verhoogde pitch (1.6) voor een speelse, kinderlijke Boris-stem."""
     schone_tekst = tekst.replace("'", "\\'").replace('"', '\\"').replace('\n', ' ')
     auto_code = "spreekTekst('" + schone_tekst + "');" if auto_play else ""
     return f"""
@@ -223,7 +222,7 @@ def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-mai
         window.speechSynthesis.cancel();
         let speech = new SpeechSynthesisUtterance(tekst);
         speech.lang = 'nl-NL'; 
-        speech.pitch = 1.6; /* Hoge pitch voor vrolijke, kinderlijke Boris stem */
+        speech.pitch = 1.6; /* Hoge pitch voor vrolijke kinderstem */
         speech.rate = 1.05;
         let voices = window.speechSynthesis.getVoices();
         let nlVoice = voices.find(v => v.lang.includes('nl'));
@@ -256,26 +255,24 @@ if st.session_state["huidige_pagina"] == "Home":
     with col_datum:
         st.markdown(f"<p style='text-align: right; font-size: 13px; color: #aaa; margin-top: 10px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
-    # 2-koloms tegelindeling
+    # Dwing strakke 2-koloms indeling af
     r1c1, r1c2 = st.columns(2)
     with r1c1:
         if st.button("💬 Chat met Boris", use_container_width=True, key="btn_chat"): ga_naar("Chat")
     with r1c2:
-        if st.button(f"📅 Agenda\n\n{aantal_afspraken_komend} afspraken gepland", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
+        if st.button(f"📅 Agenda\n\n{aantal_afspraken_komend} gepland", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
 
     r2c1, r2c2 = st.columns(2)
     with r2c1:
-        if st.button(f"🛒 Boodschappenlijst\n\n{aantal_boodschappen} items op lijst", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
+        if st.button(f"🛒 Boodschappen\n\n{aantal_boodschappen} items", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
     with r2c2:
-        if st.button("🔍 Koken & Recepten\n\nVoorraad check", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
+        if st.button("🔍 Recepten\n\nVoorraad check", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
 
     r3c1, r3c2 = st.columns(2)
     with r3c1:
-        if st.button("🧾 Kassabon Scanner\n\nBewaar & analyseer", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
+        if st.button("🧾 Kassabon\n\nScanner", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
     with r3c2:
-        if st.button("🐶 Dierenquiz!\n\nVoor Tygo & Duén", use_container_width=True, key="btn_kids"):
-            st.session_state["quiz_vraag_data"] = None
-            ga_naar("Kids")
+        if st.button("🎵 Mini-Disco!\n\nTygo & Duén", use_container_width=True, key="btn_kids"): ga_naar("Kids")
 
 
 # ==========================================
@@ -373,7 +370,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST
+# SUBPAGINA: BOODSCHAPPENLIJST (4x4 RASTER LAYOUT)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
@@ -390,58 +387,55 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "actieve_sub_cat" not in st.session_state: st.session_state["actieve_sub_cat"] = None
 
     supermarkt_database = {
-        "Aardappelen, Groenten en Fruit (AGF)": {
-            "Vers fruit": [("🍎", "Appels"), ("🍌", "Bananen"), ("🍓", "Bessen"), ("🍊", "Citrusvruchten")],
-            "Verse groenten": [("🥬", "Bladgroenten"), ("🍅", "Vruchtgroenten"), ("🧅", "Uien")],
-            "Aardappelen": [("🥔", "Verse aardappelen"), ("🥔", "Krieltjes")],
-            "Snoepgroente & salades": [("🥗", "Maaltijdsalade"), ("🥕", "Snackgroenten")]
+        "AGF": {
+            "Vers fruit": [("🍎", "Appels"), ("🍌", "Bananen"), ("🍓", "Bessen"), ("🍊", "Citrus")],
+            "Groenten": [("🥬", "Sla"), ("🍅", "Tomaten"), ("🧅", "Uien"), ("🥕", "Wortels")],
+            "Aardappel": [("🥔", "Aardappels"), ("🥔", "Krieltjes")],
+            "Salades": [("🥗", "Maaltijdsalade"), ("🥕", "Snackgroente")]
         },
-        "Zuivel, Eieren en Boter": {
-            "Melk & Karnemelk": [("🥛", "Verse melk"), ("🥛", "Houdbare melk"), ("🥛", "Havermelk")],
-            "Yoghurt & Kwark": [("🥣", "Yoghurt naturel"), ("🥣", "Plantaardige yoghurt"), ("🥣", "Kwark")],
-            "Kaas": [("🧀", "Verpakte kaas"), ("🧀", "Smeerkaas"), ("🧀", "Hüttenkäse")],
-            "Eieren & Boter": [("🥚", "Scharreleieren"), ("🧈", "Roomboter"), ("🧈", "Margarine")]
+        "Zuivel": {
+            "Melk": [("🥛", "Melk"), ("🥛", "Karnemelk"), ("🥛", "Havermelk")],
+            "Yoghurt": [("🥣", "Yoghurt"), ("🥣", "Kwark")],
+            "Kaas": [("🧀", "Jonge kaas"), ("🧀", "Oude kaas"), ("🧀", "Smeerkaas")],
+            "Eieren/Boter": [("🥚", "Eieren"), ("🧈", "Roomboter"), ("🧈", "Margarine")]
         },
-        "Vlees, Vis en Vega": {
-            "Vlees": [("🍗", "Kip"), ("🥩", "Rundvarken"), ("🥩", "Gehakt"), ("🥩", "Biefstuk")],
-            "Vis": [("🐟", "Verse vis"), ("🐟", "Gerookte vis"), ("🦐", "Zeevruchten")],
-            "Vegetarisch & Vegan": [("🌱", "Vleesvervangers"), ("🌱", "Tofu"), ("🧆", "Falafel")]
+        "Vlees/Vis": {
+            "Vlees": [("🍗", "Kipfilet"), ("🥩", "Gehakt"), ("🥩", "Biefstuk")],
+            "Vis": [("🐟", "Zalm"), ("🐟", "Kabeljauw"), ("🦐", "Garnalen")],
+            "Vega": [("🌱", "Vega burgers"), ("🌱", "Tofu"), ("🧆", "Falafel")]
         },
-        "Brood, Banket en Ontbijt": {
-            "Vers brood & Banket": [("🍞", "Vers brood"), ("🥖", "Afgebakken brood"), ("🥐", "Croissants"), ("🍰", "Gebak")],
-            "Ontbijtgranen": [("🥣", "Muesli"), ("🥣", "Havermout"), ("🥣", "Cruesli")],
-            "Broodbeleg": [("🍓", "Jam"), ("🥜", "Pindakaas"), ("🍫", "Chocopasta"), ("🍫", "Hagelslag"), ("🍯", "Honing")]
+        "Brood/Ontbijt": {
+            "Brood": [("🍞", "Brood"), ("🥖", "Stokbrood"), ("🥐", "Croissants")],
+            "Granen": [("🥣", "Muesli"), ("🥣", "Havermout"), ("🥣", "Cruesli")],
+            "Beleg": [("🍓", "Jam"), ("🥜", "Pindakaas"), ("🍫", "Hagelslag"), ("🍯", "Honing")]
         },
         "Dranken": {
-            "Frisdranken & Sappen": [("🥤", "Cola"), ("🥤", "Sinas"), ("💧", "Water"), ("🧃", "Verse jus")],
-            "Koffie & Thee": [("☕", "Koffiebonen"), ("☕", "Gemalen koffie"), ("🍵", "Theezakjes")],
-            "Alcohol": [("🍺", "Bier"), ("🍷", "Wijn"), ("🥃", "Sterke drank")]
+            "Fris/Sap": [("🥤", "Cola"), ("🥤", "Sinas"), ("💧", "Water"), ("🧃", "Jus d'orange")],
+            "Koffie/Thee": [("☕", "Koffiebonen"), ("☕", "Koffie"), ("🍵", "Thee")],
+            "Alcohol": [("🍺", "Bier"), ("🍷", "Wijn")]
         },
-        "Houdbare Kruidenierswaren": {
-            "Pasta, Rijst & Granen": [("🍝", "Pastasoorten"), ("🍚", "Rijst"), ("🍜", "Noedels"), ("🌾", "Quinoa")],
-            "Soepen & Conserven": [("🥫", "Tomatensoep"), ("🥫", "Groenten in blik"), ("🐟", "Vis in blik (tonijn)")],
-            "Kruiden & Sauzen": [("🧂", "Mayonaise"), ("🍅", "Ketchup"), ("🫒", "Olijfolie"), ("🌿", "Droge kruiden")]
+        "Houdbaar": {
+            "Pasta/Rijst": [("🍝", "Pasta"), ("🍚", "Rijst"), ("🍜", "Mie")],
+            "Conserven": [("🥫", "Soep"), ("🥫", "Groente blik"), ("🐟", "Tonijn")],
+            "Sauzen": [("🧂", "Mayo"), ("🍅", "Ketchup"), ("🫒", "Olijfolie")]
         },
-        "Snacks, Snoep en Zoetigheid": {
-            "Zoutje & Nootjes": [("🥔", "Chips"), ("🍿", "Popcorn"), ("🥨", "Borrelnoten")],
-            "Snoep & Chocolade": [("🍬", "Drop"), ("🍫", "Repen"), ("🍬", "Pepermunt")],
-            "Koekjes": [("🍪", "Ontbijtkoek"), ("🍪", "Gevulde koeken"), ("🍪", "Biscuits")]
+        "Snacks": {
+            "Zout": [("🥔", "Chips"), ("🍿", "Popcorn"), ("🥨", "Nootjes")],
+            "Zoet": [("🍬", "Snoep"), ("🍫", "Chocolade"), ("🍪", "Koekjes")]
         },
-        "Diepvries en Kant-en-Klaar": {
-            "Diepvries": [("🍕", "Pizza's"), ("🍦", "IJs"), ("🍟", "Frites"), ("🥦", "Diepvriesgroente")],
-            "Maaltijden & Soepen": [("🍲", "Koelverse maaltijden"), ("🥣", "Maaltijdsoepen")]
+        "Diepvries": {
+            "Diepvries": [("🍕", "Pizza"), ("🍦", "IJs"), ("🍟", "Friet"), ("🥦", "Diepvriesgroente")]
         },
-        "Drogisterij en Non-Food": {
-            "Persoonlijke verzorging": [("🧴", "Shampoo"), ("🧴", "Deodorant"), ("🪥", "Tandpasta"), ("🧼", "Douchegel")],
-            "Schoonmaak & Huishouden": [("🧼", "Vaatwastabletten"), ("🫧", "Wasmiddel"), ("🧻", "Wc-papier"), ("🗑️", "Vuilniszakken")],
-            "Dierenverzorging": [("🐾", "Kattenbrokken"), ("🦴", "Hondenvoer"), ("🧴", "Vlooienmiddelen")]
+        "Non-Food": {
+            "Verzorging": [("🧴", "Shampoo"), ("🪥", "Tandpasta"), ("🧼", "Zeep")],
+            "Schoonmaak": [("🧼", "Vaatwas"), ("🫧", "Wasmiddel"), ("🧻", "Wc-papier"), ("🗑️", "Zakken")]
         }
     }
 
     # ----------------------------------------------------
-    # DEEL 1: CATEGORIEËN & PRODUCTTEGELS (BOVENAAN)
+    # DEEL 1: CATEGORIEËN IN 4-KOLOMS RASTER (COMPACT)
     # ----------------------------------------------------
-    st.markdown("#### 🗂️ Producten & Categorieën")
+    st.markdown("#### 🗂️ Categorieën")
     
     hoofd_cat = st.session_state["actieve_hoofd_cat"]
     sub_cat = st.session_state["actieve_sub_cat"]
@@ -458,50 +452,53 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         sub_dict = supermarkt_database.get(hoofd_cat, {})
         
         if sub_cat is None:
-            cols = st.columns(2)
+            # 4 Kolommen Raster voor Subcategorieën
+            cols = st.columns(4)
             sub_namen = list(sub_dict.keys())
             for i, s_naam in enumerate(sub_namen):
-                col_target = cols[i % 2]
+                col_target = cols[i % 4]
                 with col_target:
                     ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
-                    if st.button(f"{ic}\n\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
+                    if st.button(f"{ic}\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
                         st.session_state["actieve_sub_cat"] = s_naam
                         st.rerun()
         else:
-            if st.button("⬅️ Terug naar subcategorieën", key="terug_naar_subs_overzicht"):
+            if st.button("⬅️ Terug naar overzicht", key="terug_naar_subs_overzicht"):
                 st.session_state["actieve_sub_cat"] = None
                 st.rerun()
                 
             st.markdown(f"**🏷️ {sub_cat}**")
             producten = sub_dict.get(sub_cat, [])
             
-            cols = st.columns(2)
+            # 4 Kolommen Raster voor Producten
+            cols = st.columns(4)
             for i, (icoon, prod_naam) in enumerate(producten):
-                col_target = cols[i % 2]
+                col_target = cols[i % 4]
                 with col_target:
-                    if st.button(f"{icoon}\n\n{prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
+                    if st.button(f"{icoon}\n{prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
                         voeg_boodschap_toe(prod_naam)
                         st.toast(f"✅ '{prod_naam}' toegevoegd!")
                         st.rerun()
 
     else:
         hoofd_icoontjes = {
-            "Aardappelen, Groenten en Fruit (AGF)": "🥦",
-            "Zuivel, Eieren en Boter": "🥛",
-            "Vlees, Vis en Vega": "🥩",
-            "Brood, Banket en Ontbijt": "🥐",
+            "AGF": "🥦",
+            "Zuivel": "🥛",
+            "Vlees/Vis": "🥩",
+            "Brood/Ontbijt": "🥐",
             "Dranken": "🥤",
-            "Houdbare Kruidenierswaren": "🥫",
-            "Snacks, Snoep en Zoetigheid": "🍫",
-            "Diepvries en Kant-en-Klaar": "🍕",
-            "Drogisterij en Non-Food": "🧻"
+            "Houdbaar": "🥫",
+            "Snacks": "🍫",
+            "Diepvries": "🍕",
+            "Non-Food": "🧻"
         }
         
-        cols = st.columns(2)
+        # 4 Kolommen Raster (4x4 look) voor Hoofdcategorieën
+        cols = st.columns(4)
         for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
-            col_target = cols[i % 2]
+            col_target = cols[i % 4]
             with col_target:
-                if st.button(f"{icoon}\n\n{cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
+                if st.button(f"{icoon}\n{cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
                     st.session_state["actieve_hoofd_cat"] = cat_naam
                     st.session_state["actieve_sub_cat"] = None
                     st.rerun()
@@ -509,34 +506,36 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     st.markdown("---")
 
     # ----------------------------------------------------
-    # DEEL 2: SNEL & SPRAAK TOEVOEGEN (IN HET MIDDEN)
+    # DEEL 2: SNEL & SPRAAK TOEVOEGEN
     # ----------------------------------------------------
-    st.markdown("#### ➕ Snel & Spraak Toevoegen")
-    
     with st.form("boodschap_form", clear_on_submit=True):
-        nieuw_item = st.text_input("Typ losse boodschappen of hele lijst (bijv: melk, brood, eieren)")
-        if st.form_submit_button("➕ Toevoegen") and nieuw_item:
-            verwerk_meerdere_boodschappen(nieuw_item)
-            st.rerun()
+        col_in, col_btn = st.columns([3, 1])
+        with col_in:
+            nieuw_item = st.text_input("Snel toevoegen:", placeholder="Typ bijv. melk, brood...")
+        with col_btn:
+            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+            submit = st.form_submit_button("➕ Voeg toe")
+            if submit and nieuw_item:
+                verwerk_meerdere_boodschappen(nieuw_item)
+                st.rerun()
 
     st.components.v1.html("""
-        <div style="text-align: center; margin-top: 5px;">
+        <div style="text-align: center;">
             <button id="micBtn" onclick="startDictation()" style="
                 background-color: #1B4D2E;
                 color: white;
                 border: 1px solid #2E7D32;
-                border-radius: 12px;
-                padding: 12px 18px;
-                font-size: 15px;
+                border-radius: 10px;
+                padding: 8px;
+                font-size: 14px;
                 font-weight: bold;
                 cursor: pointer;
                 width: 100%;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-                transition: background-color 0.2s;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             ">
                 🎙️ Spreek een hele lijst in
             </button>
-            <p id="statusMsg" style="color: #aaa; font-size: 12px; margin-top: 6px; margin-bottom: 0;"></p>
+            <p id="statusMsg" style="color: #aaa; font-size: 11px; margin-top: 4px; margin-bottom: 0;"></p>
         </div>
 
         <script>
@@ -550,7 +549,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 var btn = document.getElementById('micBtn');
                 var status = document.getElementById('statusMsg');
 
-                status.innerText = '🎤 Luisteren... noem al je boodschappen op!';
+                status.innerText = '🎤 Luisteren... noem je boodschappen op!';
                 btn.style.backgroundColor = '#d32f2f';
 
                 recognition.start();
@@ -565,7 +564,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 };
 
                 recognition.onerror = function(event) {
-                    status.innerText = 'Fout bij herkenning: ' + event.error;
+                    status.innerText = 'Fout: ' + event.error;
                     btn.style.backgroundColor = '#1B4D2E';
                 };
 
@@ -573,22 +572,21 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                     btn.style.backgroundColor = '#1B4D2E';
                 };
             } else {
-                alert('Spraakherkenning wordt niet ondersteund door je browser. Gebruik Safari of Chrome.');
+                alert('Spraakherkenning wordt niet ondersteund.');
             }
         }
         </script>
-    """, height=85)
+    """, height=65)
 
     st.markdown("---")
 
     # ----------------------------------------------------
     # DEEL 3: HET BOODSCHAPPENLIJSTJE (ONDERAAN)
     # ----------------------------------------------------
-    st.markdown("#### 🛒 Mijn Boodschappenlijst")
+    st.markdown("#### 🛒 Mijn Lijstje")
     
     boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
     if boodschappen_lijst:
-        st.markdown(f"<p style='color: #aaa; font-size: 0.85rem;'>Totaal {len(boodschappen_lijst)} items op je lijstje</p>", unsafe_allow_html=True)
         indices_om_te_verwijderen = []
         for idx, item in enumerate(boodschappen_lijst):
             if st.checkbox(f"🛍️ {item}", key=f"boodschap_{idx}"): 
@@ -605,12 +603,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 leeg_boodschappenlijst()
                 st.rerun()
     else: 
-        st.markdown("""
-            <div style="background-color: #1a1a1a; border: 2px dashed #444; border-radius: 16px; padding: 20px; text-align: center; color: #888;">
-                <h5>Je lijstje is leeg! 📭</h5>
-                <p style="font-size: 0.85rem; margin-bottom: 0;">Kies bovenaan een categorie of gebruik de spraakknop om toe te voegen.</p>
-            </div>
-        """, unsafe_allow_html=True)
+        st.info("Lijstje is leeg! Tik op een categorie hierboven.")
 
 
 # ==========================================
@@ -715,86 +708,50 @@ elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
 
 
 # ==========================================
-# SUBPAGINA: BORIS' INTERACTIEVE DIERENQUIZ
+# SUBPAGINA: BORIS' MINI-DISCO & BEWEGINGSSPEL
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Kids":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
-    st.markdown("### 🐶 Boris' Dierenquiz voor Tygo & Duén")
+    st.markdown("### 🎵 Boris' Beweeg & Dansfeestje!")
     
     base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
     IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
     
     st.markdown(f"""
         <div style="text-align: center; margin-bottom: 15px;">
-            <img src="{IMAGE_SRC}" id="Boris-quiz-img" style="width: 120px; height: 120px; border-radius:50%; object-fit:cover; border: 3px solid #4CAF50;">
+            <img src="{IMAGE_SRC}" id="Boris-dance-img" style="width: 120px; height: 120px; border-radius:50%; object-fit:cover; border: 4px solid #4CAF50;">
         </div>
     """, unsafe_allow_html=True)
 
-    # Vaste lijst met super simpele en vrolijke peutervragen
-    DIEREN_QUIZ_DATABASE = [
-        {
-            "vraag": "Oink! Ik ben roze, houd heel veel van modder en maak oink oink! Wie ben ik?",
-            "opties": [("🐷", "Varken", True), ("🐶", "Hond", False), ("🐱", "Kat", False)]
-        },
-        {
-            "vraag": "Oink! Ik loei heel hard Moe! en geef lekkere verse melk. Wie ben ik?",
-            "opties": [("🐮", "Koe", True), ("🐸", "Kikker", False), ("🦆", "Eend", False)]
-        },
-        {
-            "vraag": "Oink! Ik blaf woef woef en kwispel vrolijk met mijn staart! Wie ben ik?",
-            "opties": [("🐱", "Kat", False), ("🐶", "Hond", True), ("🐵", "Aap", False)]
-        },
-        {
-            "vraag": "Oink! Ik zwem in de vijver en roep kwak kwak! Wie ben ik?",
-            "opties": [("🦆", "Eend", True), ("🦁", "Leeuw", False), ("🐰", "Konijn", False)]
-        },
-        {
-            "vraag": "Oink! Ik ben supergroot, grijs en heb een lange slurf! Wie ben ik?",
-            "opties": [("🐭", "Muis", False), ("🐘", "Olifant", True), ("🐔", "Kip", False)]
-        }
+    BEWEGINGS_OPDRACHTEN = [
+        {"emoji": "🐘", "tekst": "Oink oink! Tygo en Duén, stamp 5 keer als een hele grote, zware olifant! Stamp! Stamp! Stamp!"},
+        {"emoji": "🐸", "tekst": "Oink! Spring 3 keer heel hoog in de lucht als een groene kikker! Boing boing boing!"},
+        {"emoji": "👏", "tekst": "Oink! Klap allemaal heel hard in je handen en roep heel hard: HOERA FOR BORIS!"},
+        {"emoji": "🫂", "tekst": "Oink! Tijd voor liefde! Geef Duén en Tygo elkaar snel een hele dikke knuffel!"},
+        {"emoji": "🦁", "tekst": "Oink! Doe je handen omhoog en roor zo hard als een hele gevaarlijke leeuw! ROAARRR!"},
+        {"emoji": "💃", "tekst": "Oink! Draai een heel snel rondje en dans als een vrolijk gekkie door de kamer!"},
+        {"emoji": "🐵", "tekst": "Oink! Krab onder je oksels en maak echte apengeluiden! Oe-oe-ah-ah!"}
     ]
 
-    # Initialiseer een vraag in session_state als die er nog niet is
-    if "quiz_vraag_data" not in st.session_state or st.session_state["quiz_vraag_data"] is None:
-        st.session_state["quiz_vraag_data"] = random.choice(DIEREN_QUIZ_DATABASE)
-        st.session_state["quiz_beantwoord"] = False
-        st.session_state["quiz_goed"] = False
+    if "actieve_opdracht" not in st.session_state:
+        st.session_state["actieve_opdracht"] = random.choice(BEWEGINGS_OPDRACHTEN)
 
-    vraag_data = st.session_state["quiz_vraag_data"]
+    opdracht = st.session_state["actieve_opdracht"]
 
-    st.info(f"💬 **Boris vraagt:**\n\n\"{vraag_data['vraag']}\"")
-    
-    # Audio knop voor de vraag van Boris
-    st.components.v1.html(genereer_tts_script(vraag_data['vraag'], "🔊 Luister naar Boris", "Boris-quiz-img"), height=45)
+    st.markdown(f"""
+        <div style="background-color: #1a1a1a; border: 2px solid #2E7D32; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 15px;">
+            <h1 style="font-size: 60px; margin: 0;">{opdracht['emoji']}</h1>
+            <p style="font-size: 1.1rem; font-weight: bold; color: #EBF5EE; margin-top: 10px;">"{opdracht['tekst']}"</p>
+        </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("<p style='text-align: center; font-weight: bold; margin-top: 15px;'>Tik op het juiste dier! 👇</p>", unsafe_allow_html=True)
-
-    # 3 grote antwoordknoppen
-    cols_quiz = st.columns(3)
-    for i, (emoji, naam, is_correct) in enumerate(vraag_data["opties"]):
-        with cols_quiz[i]:
-            if st.button(f"{emoji}\n\n{naam}", key=f"quiz_optie_{i}", use_container_width=True):
-                st.session_state["quiz_beantwoord"] = True
-                st.session_state["quiz_goed"] = is_correct
-                st.session_state["gekozen_dier"] = naam
-                st.rerun()
-
-    # Feedback na het klikken
-    if st.session_state.get("quiz_beantwoord"):
-        if st.session_state.get("quiz_goed"):
-            st.balloons()
-            hoera_tekst = f"Oink oink! Wat ontzettend knap van Tygo en Duén! Het is inderdaad de {st.session_state['gekozen_dier']}! Jullie verdienen een grote virtuele varkenssticker! 🐷⭐"
-            st.success(hoera_tekst)
-            st.components.v1.html(genereer_tts_script(hoera_tekst, "🔊 Hoera!", "Boris-quiz-img", auto_play=True), height=45)
-        else:
-            fout_tekst = f"Oink! Bijna! Dat is de {st.session_state['gekozen_dier']}. Probeer het nog een keertje!"
-            st.warning(fout_tekst)
-            st.components.v1.html(genereer_tts_script(fout_tekst, "🔊 Oeps!", "Boris-quiz-img", auto_play=True), height=45)
+    # Automatische kinderstem die de actie uitspreekt
+    st.components.v1.html(genereer_tts_script(opdracht['tekst'], "🔊 Luister naar Boris", "Boris-dance-img", auto_play=True), height=45)
 
     st.markdown("---")
-    if st.button("🔄 Volgende Vraag!", use_container_width=True):
-        st.session_state["quiz_vraag_data"] = random.choice(DIEREN_QUIZ_DATABASE)
-        st.session_state["quiz_beantwoord"] = False
-        st.session_state["quiz_goed"] = False
+    
+    if st.button("🎲 Druk voor een NIEUWE Dansopdracht!", use_container_width=True):
+        st.balloons()
+        st.session_state["actieve_opdracht"] = random.choice(BEWEGINGS_OPDRACHTEN)
         st.rerun()
