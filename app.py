@@ -41,7 +41,7 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (STRAKKE MOBIELE 4-KOLOMS TEGELS ZONDER OVERFLOW) ---
+# --- STYLING (HARDERE OVERRIDE VOOR MOBIELE 4-KOLOMS GRID) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -61,7 +61,7 @@ st.markdown("""
         overflow-x: hidden !important;
     }
     
-    /* 4 Koloms flex layout passend binnen het scherm */
+    /* Forceer ALTIJD 4 kolommen naast elkaar, ook op mobiel (override Streamlit gedrag) */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -73,26 +73,40 @@ st.markdown("""
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        flex: 1 1 0 !important;
-        min-width: 0px !important;
+        flex: 0 0 25% !important;
+        width: 25% !important;
         max-width: 25% !important;
+        min-width: 0px !important;
         padding: 0 !important;
         margin: 0 !important;
     }
 
-    /* VASTE COMPACTE VIERKANTE APP-TEGELS VOOR TELEFOON */
+    @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            flex: 0 0 25% !important;
+            width: 25% !important;
+            max-width: 25% !important;
+            min-width: 0px !important;
+        }
+    }
+
+    /* COMPACTE APPLICATIE TEGELS */
     .stButton > button {
         width: 100% !important;
-        height: 52px !important;
-        min-height: 52px !important;
-        max-height: 52px !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        max-height: 48px !important;
         border-radius: 6px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.5rem !important;
+        font-size: 0.45rem !important;
         font-weight: 600 !important;
         text-align: center !important;
         padding: 1px !important;
@@ -107,13 +121,13 @@ st.markdown("""
     }
 
     .stButton > button p, .stButton > button div, .stButton > button span {
-        font-size: 0.5rem !important;
+        font-size: 0.45rem !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
-        line-height: 1.1 !important;
+        line-height: 1.0 !important;
     }
 
     .stButton > button:hover, .stButton > button:active {
