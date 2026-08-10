@@ -19,7 +19,6 @@ st.set_page_config(
 
 # --- BROWSER HISTORY & ROUTING ---
 query_pagina = st.query_params.get("pagina", "Home")
-
 if "huidige_pagina" not in st.session_state or st.session_state["huidige_pagina"] != query_pagina:
     st.session_state["huidige_pagina"] = query_pagina
 
@@ -54,7 +53,7 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (MOBILE-PROOF 4-KOLOMMS APP-GRID) ---
+# --- STYLING (EENVOUDIGE KLEINE VIERKANTE TEGELS) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -72,55 +71,53 @@ st.markdown("""
         overflow-x: hidden !important;
     }
     
-    /* Perfect schalende 4-koloms rijen voor mobiel en desktop */
+    /* 4 Koloms flex layout */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 3px !important;
+        gap: 4px !important;
         width: 100% !important;
-        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
-        box-sizing: border-box !important;
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         flex: 1 1 0 !important;
         min-width: 0px !important;
         max-width: 25% !important;
-        box-sizing: border-box !important;
         padding: 0 !important;
     }
 
-    /* Strakke App-Tegels (Klein & Schaalbaar zoals Android/iOS) */
+    /* VASTE KLEINE VIERKANTE APP-TEGELS */
     .stButton > button {
         width: 100% !important;
-        height: 52px !important;
+        height: 65px !important;
+        min-height: 65px !important;
+        max-height: 65px !important;
         border-radius: 10px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.6rem !important;
+        font-size: 0.65rem !important;
         font-weight: 600 !important;
         text-align: center !important;
-        padding: 1px !important;
-        margin-bottom: 3px !important;
+        padding: 2px !important;
+        margin-bottom: 4px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         align-items: center !important;
-        gap: 1px !important;
+        gap: 2px !important;
         overflow: hidden !important;
         white-space: nowrap !important;
         text-overflow: ellipsis !important;
-        box-sizing: border-box !important;
     }
 
     .stButton > button p, .stButton > button div {
-        font-size: 0.62rem !important;
+        font-size: 0.65rem !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
@@ -129,7 +126,7 @@ st.markdown("""
     }
 
     .stButton > button:hover, .stButton > button:active {
-        transform: scale(0.97) !important;
+        transform: scale(0.96) !important;
         background-color: #D6EFE0 !important;
         border-color: #2E7D32 !important;
         color: #0E331A !important;
@@ -137,22 +134,10 @@ st.markdown("""
 
     @keyframes avatar-talking {
         0% { transform: translateY(0px) scale(1) rotate(0deg); }
-        20% { transform: translateY(-3px) scale(1.02) rotate(-1deg); }
-        40% { transform: translateY(2px) scale(0.98) rotate(1deg); }
-        60% { transform: translateY(-2px) scale(1.01) rotate(-1deg); }
-        80% { transform: translateY(1px) scale(0.99) rotate(1deg); }
+        50% { transform: translateY(-3px) scale(1.02) rotate(-1deg); }
         100% { transform: translateY(0px) scale(1) rotate(0deg); }
     }
     .Boris-img-talking { animation: avatar-talking 0.3s infinite ease-in-out; }
-    
-    @keyframes avatar-dancing {
-        0% { transform: rotate(0deg) translateY(0px); }
-        25% { transform: rotate(-10deg) translateY(-8px); }
-        50% { transform: rotate(0deg) translateY(0px); }
-        75% { transform: rotate(10deg) translateY(-8px); }
-        100% { transform: rotate(0deg) translateY(0px); }
-    }
-    .Boris-img-dancing { animation: avatar-dancing 0.6s infinite ease-in-out; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -290,35 +275,6 @@ GEZIN_CONTEXT = (
     "Je helpt met planning en voedselverspilling voorkomen. Je spreekt vrolijk, kort, en eindigt vaak met 'Oink!'."
 )
 
-def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-main-img", auto_play=False):
-    schone_tekst = tekst.replace("'", "\\'").replace('"', '\\"').replace('\n', ' ')
-    auto_code = "spreekTekst('" + schone_tekst + "');" if auto_play else ""
-    return f"""
-    <script>
-    function spreekTekst(tekst) {{
-        let img = window.parent.document.getElementById('{img_id}');
-        window.speechSynthesis.cancel();
-        let speech = new SpeechSynthesisUtterance(tekst);
-        speech.lang = 'nl-NL'; 
-        speech.pitch = 1.6;
-        speech.rate = 1.05;
-        let voices = window.speechSynthesis.getVoices();
-        let nlVoice = voices.find(v => v.lang.includes('nl'));
-        if (nlVoice) {{ speech.voice = nlVoice; }}
-        speech.onstart = function() {{ if(img) img.classList.add('Boris-img-talking'); }};
-        speech.onend = function() {{ if(img) img.classList.remove('Boris-img-talking'); }};
-        window.speechSynthesis.speak(speech);
-    }}
-    {auto_code}
-    </script>
-    <div style="text-align: center; margin-top: 3px;">
-        <button onclick="spreekTekst('{schone_tekst}')" style="background-color: #1e1e1e; border: 1px solid #333; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; color: #4CAF50; width: 100%; padding: 4px;">
-            {knop_tekst}
-        </button>
-    </div>
-    """
-
-
 # ==========================================
 # HOOFDSCHERM (DASHBOARD - 4x4 RASTER APPS)
 # ==========================================
@@ -355,7 +311,6 @@ if st.session_state["huidige_pagina"] == "Home":
             with cols[j]:
                 if st.button(f"{icoon}\n{tekst}", use_container_width=True, key=f"dash_btn_{pagina}"):
                     ga_naar(pagina)
-
 
 # ==========================================
 # SUBPAGINA: AGENDA
@@ -450,9 +405,8 @@ elif st.session_state["huidige_pagina"] == "Agenda":
     else:
         st.info("Er staan nog geen afspraken in de agenda.")
 
-
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (4x4 APP GRID)
+# SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
@@ -514,7 +468,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         }
     }
 
-    st.markdown("#### 🗂️ Kassaregister Categorieën")
+    st.markdown("#### 🗂️ Categorieën")
     hoofd_cat = st.session_state["actieve_hoofd_cat"]
     sub_cat = st.session_state["actieve_sub_cat"]
 
@@ -597,67 +551,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 verwerk_meerdere_boodschappen(nieuw_item)
                 st.rerun()
 
-    st.components.v1.html("""
-        <div style="text-align: center;">
-            <button id="micBtn" onclick="startDictation()" style="
-                background-color: #1B4D2E;
-                color: white;
-                border: 1px solid #2E7D32;
-                border-radius: 6px;
-                padding: 5px;
-                font-size: 11px;
-                font-weight: bold;
-                cursor: pointer;
-                width: 100%;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-            ">
-                🎙️ Spreek hele lijst in
-            </button>
-            <p id="statusMsg" style="color: #aaa; font-size: 9px; margin-top: 2px; margin-bottom: 0;"></p>
-        </div>
-
-        <script>
-        function startDictation() {
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                var recognition = new SpeechRecognition();
-                recognition.lang = 'nl-NL';
-                recognition.interimResults = false;
-
-                var btn = document.getElementById('micBtn');
-                var status = document.getElementById('statusMsg');
-
-                status.innerText = '🎤 Luisteren...';
-                btn.style.backgroundColor = '#d32f2f';
-
-                recognition.start();
-
-                recognition.onresult = function(event) {
-                    var res = event.results[0][0].transcript;
-                    status.innerText = 'Verwerken: "' + res + '"';
-                    
-                    const url = new URL(window.parent.location.href);
-                    url.searchParams.set("spraak_input", res);
-                    window.parent.location.href = url.href;
-                };
-
-                recognition.onerror = function(event) {
-                    status.innerText = 'Fout: ' + event.error;
-                    btn.style.backgroundColor = '#1B4D2E';
-                };
-
-                recognition.onend = function() {
-                    btn.style.backgroundColor = '#1B4D2E';
-                };
-            } else {
-                alert('Spraakherkenning niet ondersteund.');
-            }
-        }
-        </script>
-    """, height=45)
-
     st.markdown("---")
-
     st.markdown("#### 🛒 Actieve Lijst")
     boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
     if boodschappen_lijst:
@@ -679,7 +573,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     else: 
         st.info("Lijstje is leeg!")
 
-
 # ==========================================
 # SUBPAGINA: WEEKMENU
 # ==========================================
@@ -687,7 +580,7 @@ elif st.session_state["huidige_pagina"] == "Weekmenu":
     if st.button("🔙 Terug"): ga_naar("Home")
     
     st.markdown("### 🍽️ Slim Weekmenu & Boodschappen")
-    st.write("Genereer een kindvriendelijk weekmenu (voor Tygo en Duén) en zet ingrediënten direct op de lijst.")
+    st.write("Genereer een kindvriendelijk weekmenu en zet ingrediënten direct op de lijst.")
     
     if st.button("✨ Genereer nieuw weekmenu", type="primary"):
         with st.spinner("Boris stelt het menu samen..."):
@@ -695,8 +588,7 @@ elif st.session_state["huidige_pagina"] == "Weekmenu":
                 f"{GEZIN_CONTEXT} Genereer een gevarieerd weekmenu voor 5 dagen (Maandag t/m Vrijdag) "
                 "specifiek gericht op kindvriendelijke maaltijden (geschikt voor Tygo van 3 en Duén van 1). "
                 "Geef de output terug als een JSON object met als sleutels 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', "
-                "waarbij elke dag een object is met 'gerecht' (string) en 'ingredienten' (lijst van strings). "
-                "Voorbeeldformaat: {\"Maandag\": {\"gerecht\": \"Milde macaroni\", \"ingredienten\": [\"Macaroni\", \"Gehakt\", \"Tomatensaus\"]}}"
+                "waarbij elke dag een object is met 'gerecht' (string) en 'ingredienten' (lijst van strings)."
             )
             try:
                 res = client.models.generate_content(
@@ -737,7 +629,6 @@ elif st.session_state["huidige_pagina"] == "Weekmenu":
     else:
         st.info("Nog geen weekmenu gegenereerd.")
 
-
 # ==========================================
 # SUBPAGINA: DAGSCHEMA
 # ==========================================
@@ -745,290 +636,19 @@ elif st.session_state["huidige_pagina"] == "Dagschema":
     if st.button("🔙 Terug"): ga_naar("Home")
     
     st.markdown("### 🎯 Visueel Dagschema Tygo")
-    st.write("Vink de routines af voor een beloning van Boris.")
+    st.write("Vink de routines af.")
     
     dagschema = st.session_state["gezin_data"].get("dagschema", [])
-    alle_klaar = True if dagschema else False
-    
     for idx, item in enumerate(dagschema):
-        col_chk, col_lbl = st.columns([1, 5])
-        with col_chk:
-            nieuw_status = st.checkbox("", value=item.get("klaar", False), key=f"dag_taak_{idx}")
-            if nieuw_status != item.get("klaar", False):
-                st.session_state["gezin_data"]["dagschema"][idx]["klaar"] = nieuw_status
-                sla_data_op(st.session_state["gezin_data"])
-                st.rerun()
-        with col_lbl:
-            tijd_label = f" *({item.get('tijd')})*" if item.get('tijd') else ""
-            st.markdown(f"**{item.get('taak')}**{tijd_label}")
-        if not item.get("klaar", False):
-            alle_klaar = False
-
-    if dagschema and alle_klaar:
-        st.balloons()
-        base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
-        st.markdown(f"""
-            <div style="text-align: center; background-color: #EBF5EE; padding: 10px; border-radius: 10px; border: 2px solid #2E7D32; margin-top: 8px;">
-                <img src="{IMAGE_SRC}" class="Boris-img-dancing" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 4px;"><br>
-                <h3 style="color: #1B4D2E; margin: 0; font-size: 1rem;">Super gedaan Tygo! 🎉</h3>
-                <p style="color: #333; margin-top: 2px; font-size: 0.8rem;">Alles afgerond! Boris danst voor jou!</p>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    with st.form("add_taak_form", clear_on_submit=True):
-        nieuwe_taak_naam = st.text_input("Extra taak (bijv. 👟 Schoenen)")
-        taak_tijd = st.selectbox("Moment", ["Ochtend", "Middag", "Avond"])
-        if st.form_submit_button("Toevoegen") and nieuwe_taak_naam:
-            st.session_state["gezin_data"]["dagschema"].append({"taak": nieuwe_taak_naam, "tijd": taak_tijd, "klaar": False})
+        status = st.checkbox(f"{item.get('taak')}", value=item.get("klaar", False), key=f"schema_{idx}")
+        if status != item.get("klaar", False):
+            dagschema[idx]["klaar"] = status
             sla_data_op(st.session_state["gezin_data"])
-            st.rerun()
-
 
 # ==========================================
-# SUBPAGINA: ACTIVITEITEN
+# OVERIGE PAGINA'S (FALLBACK)
 # ==========================================
-elif st.session_state["huidige_pagina"] == "Activiteiten":
+else:
     if st.button("🔙 Terug"): ga_naar("Home")
-    
-    st.markdown("### 🌳 Activiteiten-Generator")
-    st.write("Leuke uitjes in Salland voor een peuter en baby.")
-    
-    locatie_keuze = st.selectbox("Waar?", ["Binnen", "Buiten / Natuur", "Maakt niet uit"])
-    tijd_keuze = st.selectbox("Tijd?", ["Kort (1 uur)", "Halve dag", "Hele dag"])
-    
-    if st.button("🔍 Zoek uitjes", type="primary"):
-        with st.spinner("Boris zoekt..."):
-            prompt = (
-                f"{GEZIN_CONTEXT} Bedenk 3 kindvriendelijke activiteiten in/rondom Luttenberg/Salland "
-                f"voor '{locatie_keuze}' en tijdsduur '{tijd_keuze}', geschikt voor 3 jr en 1 jr."
-            )
-            res = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-            st.session_state["laatste_activiteiten"] = res.text
-
-    if "laatste_activiteiten" in st.session_state:
-        st.markdown("---")
-        st.markdown(st.session_state["laatste_activiteiten"])
-        st.components.v1.html(
-            genereer_tts_script(st.session_state["laatste_activiteiten"], "🔊 Beluister", "Boris-main-img"),
-            height=40
-        )
-
-
-# ==========================================
-# SUBPAGINA: GEZONDHEID
-# ==========================================
-elif st.session_state["huidige_pagina"] == "Gezondheid":
-    if st.button("🔙 Terug"): ga_naar("Home")
-    
-    st.markdown("### 💊 Ziekte & Medicijnen Logboek")
-    
-    with st.form("gezondheid_form", clear_on_submit=True):
-        kind = st.selectbox("Wie?", ["Tygo", "Duén"])
-        medicijn = st.text_input("Medicijn / Omschrijving")
-        temp = st.text_input("Temp in °C (optioneel)")
-        notitie = st.text_area("Notitie")
-        
-        if st.form_submit_button("Opslaan"):
-            nu_tijd = datetime.datetime.now().strftime("%d-%m-%Y om %H:%M")
-            item = {"tijd": nu_tijd, "kind": kind, "medicijn": medicijn, "temperatuur": temp, "notitie": notitie}
-            if "gezondheid" not in st.session_state["gezin_data"]:
-                st.session_state["gezin_data"]["gezondheid"] = []
-            st.session_state["gezin_data"]["gezondheid"].insert(0, item)
-            sla_data_op(st.session_state["gezin_data"])
-            st.success("Opgeslagen!")
-            st.rerun()
-
-    st.markdown("---")
-    gezondheid_logs = st.session_state["gezin_data"].get("gezondheid", [])
-    if gezondheid_logs:
-        for log in gezondheid_logs:
-            temp_str = f" | 🌡️ {log.get('temperatuur')}°C" if log.get('temperatuur') else ""
-            med_str = f" | 💊 {log.get('medicijn')}" if log.get('medicijn') else ""
-            st.markdown(f"🕒 **{log.get('tijd')}** — **{log.get('kind')}**{med_str}{temp_str}")
-            st.markdown("---")
-    else:
-        st.info("Geen logs.")
-
-
-# ==========================================
-# SUBPAGINA: HUISHOUD
-# ==========================================
-elif st.session_state["huidige_pagina"] == "Huishoud":
-    if st.button("🔙 Terug"): ga_naar("Home")
-    
-    st.markdown("### 🧹 Huishoud- & Klusjesrooster")
-    
-    huishoud_taken = st.session_state["gezin_data"].get("huishoud", [])
-    for idx, taken_item in enumerate(huishoud_taken):
-        col_c, col_t = st.columns([1, 5])
-        with col_c:
-            status = st.checkbox("", value=taken_item.get("status", False), key=f"huishoud_chk_{idx}")
-            if status != taken_item.get("status", False):
-                st.session_state["gezin_data"]["huishoud"][idx]["status"] = status
-                sla_data_op(st.session_state["gezin_data"])
-                st.rerun()
-        with col_t:
-            dag_str = f" *({taken_item.get('dag')})*" if taken_item.get('dag') else ""
-            st.markdown(f"**{taken_item.get('taak')}**{dag_str}")
-
-    st.markdown("---")
-    with st.form("add_huishoud_form", clear_on_submit=True):
-        nieuwe_klustaken = st.text_input("Taak omschrijving")
-        dag_selectie = st.selectbox("Dag", ["Elke dag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"])
-        if st.form_submit_button("Toevoegen") and nieuwe_klustaken:
-            st.session_state["gezin_data"]["huishoud"].append({"taak": nieuwe_klustaken, "dag": dag_selectie, "status": False})
-            sla_data_op(st.session_state["gezin_data"])
-            st.rerun()
-
-
-# ==========================================
-# SUBPAGINA: CHAT MET BORIS
-# ==========================================
-elif st.session_state["huidige_pagina"] == "Chat":
-    if st.button("🔙 Terug"): ga_naar("Home")
-    
-    if "chat_messages" not in st.session_state: 
-        st.session_state["chat_messages"] = []
-        
-    for idx, msg in enumerate(st.session_state["chat_messages"]):
-        with st.chat_message(msg["role"], avatar="🐗" if msg["role"] == "assistant" else "👤"): 
-            st.write(msg["content"])
-            if msg["role"] == "assistant":
-                st.components.v1.html(genereer_tts_script(msg["content"], "🔊 Beluister", f"chat_tts_{idx}"), height=35)
-
-    user_prompt = st.chat_input("Typ je bericht...")
-    if user_prompt:
-        st.session_state["chat_messages"].append({"role": "user", "content": user_prompt})
-        with st.chat_message("user", avatar="👤"): 
-            st.write(user_prompt)
-            
-        with st.chat_message("assistant", avatar="🐗"):
-            with st.spinner("Boris denkt na..."):
-                instructie = """Geef een JSON object terug: {"actie": "boodschap_toevoegen"|"agenda_toevoegen"|"geen", "boodschap": "item"|"", "agenda_datum": "YYYY-MM-DD"|"", "agenda_beschrijving": "omschrijving"|"", "antwoord": "tekst"}"""
-                try:
-                    res = client.models.generate_content(
-                        model='gemini-2.5-flash', 
-                        contents=f"{GEZIN_CONTEXT} Gebruiker zegt: '{user_prompt}'\n{instructie}", 
-                        config={'response_mime_type': 'application/json'}
-                    )
-                    data = parse_json_veilig(res.text) or {}
-                    actie_melding = ""
-                    if data.get("actie") == "boodschap_toevoegen" and data.get("boodschap"): 
-                        voeg_boodschap_toe(data["boodschap"])
-                        actie_melding = f"\n\n*(✅ '{data['boodschap']}' toegevoegd!)*"
-                    elif data.get("actie") == "agenda_toevoegen" and data.get("agenda_beschrijving"): 
-                        d = data.get("agenda_datum") or vandaag.strftime("%Y-%m-%d")
-                        voeg_agenda_toe(d, data["agenda_beschrijving"])
-                        actie_melding = f"\n\n*(🗓️ '{data['agenda_beschrijving']}' gepland!)*"
-                    
-                    eind_antwoord = data.get("antwoord", res.text) + actie_melding
-                except Exception:
-                    eind_antwoord = "Oink! Er ging even iets mis!"
-                
-                st.write(eind_antwoord)
-                st.session_state["chat_messages"].append({"role": "assistant", "content": eind_antwoord})
-                st.rerun()
-
-
-# ==========================================
-# SUBPAGINA: RECEPTEN & VOORRAAD
-# ==========================================
-elif st.session_state["huidige_pagina"] == "Recepten":
-    if st.button("🔙 Terug"): ga_naar("Home")
-    
-    st.markdown("### 🍳 Recepten & Voorraad Check")
-    camera_file = st.camera_input("📸 Maak foto")
-    uploaded_file = st.file_uploader("Of upload", type=["jpg", "png", "jpeg"])
-    gekozen_foto = camera_file if camera_file is not None else uploaded_file
-    
-    if st.button("👨‍🍳 Genereer Recepten", type="primary") and gekozen_foto:
-        with st.spinner("Boris snuffelt..."):
-            prompt = f"{GEZIN_CONTEXT}\nVerzin 2 kindvriendelijke recepten. Eindig met JSON: {{\"boodschappen\": [\"item 1\"]}}."
-            res = client.models.generate_content(model='gemini-2.5-flash', contents=[prompt, Image.open(gekozen_foto)])
-            st.session_state["laatste_recept"] = res.text
-            
-    if "laatste_recept" in st.session_state:
-        tekst = st.session_state["laatste_recept"]
-        data = parse_json_veilig(tekst)
-        leesbare_tekst = re.sub(r'\{.*\}', '', tekst, flags=re.DOTALL).strip()
-        st.markdown(leesbare_tekst)
-        
-        if data and data.get("boodschappen"):
-            ontbrekende_items = data["boodschappen"]
-            st.info(f"🛒 **Ontbrekend:** {', '.join(ontbrekende_items)}")
-            if st.button("➕ Voeg toe aan boodschappenlijst"):
-                for item in ontbrekende_items: voeg_boodschap_toe(item)
-                st.success("Toegevoegd!")
-
-
-# ==========================================
-# SUBPAGINA: KASSABON SCANNER
-# ==========================================
-elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
-    if st.button("🔙 Terug"): ga_naar("Home")
-    
-    st.markdown("### 🧾 Kassabon Scanner")
-    camera_bon = st.camera_input("📸 Foto van bon")
-    uploaded_bon = st.file_uploader("Of upload bon", type=["jpg", "png", "jpeg"])
-    gekozen_bon = camera_bon if camera_bon is not None else uploaded_bon
-    
-    if st.button("Scan", type="primary") and gekozen_bon:
-        with st.spinner("Analyseren..."):
-            res = client.models.generate_content(model='gemini-2.5-flash', contents=[f"{GEZIN_CONTEXT} Vat deze bon samen.", Image.open(gekozen_bon)])
-            st.markdown(res.text)
-
-
-# ==========================================
-# SUBPAGINA: BORIS' MINI-DISCO
-# ==========================================
-elif st.session_state["huidige_pagina"] == "Kids":
-    if st.button("🔙 Terug"): ga_naar("Home")
-    
-    st.markdown("### 🎵 Boris' Mini-Disco!")
-    
-    base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-    IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
-    
-    st.markdown(f"""
-        <div style="text-align: center; margin-bottom: 8px;">
-            <img src="{IMAGE_SRC}" id="Boris-dance-img" class="Boris-img-dancing" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid #ff9800; object-fit: cover;">
-        </div>
-    """, unsafe_allow_html=True)
-    
-    if "huidige_dans_opdracht" not in st.session_state:
-        st.session_state["huidige_dans_opdracht"] = "Doe een gekke dans als een zwijntje! Oink oink!"
-
-    col_dans1, col_dans2 = st.columns(2)
-    with col_dans1:
-        if st.button("🎲 Dansopdracht", use_container_width=True):
-            opdrachten = [
-                "Spring 5 keer als een kangoeroe!",
-                "Draai drie rondjes en maak een varkenssnuitje!",
-                "Dans als een robot die moet lachen!",
-                "Kruip als een tijger over de vloer!",
-                "Zwaai met je armen als een windmolen!"
-            ]
-            st.session_state["huidige_dans_opdracht"] = random.choice(opdrachten)
-            st.rerun()
-
-    with col_dans2:
-        if st.button("✨ Vraag Boris", use_container_width=True):
-            with st.spinner("Boris bedenkt..."):
-                try:
-                    res = client.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=f"{GEZIN_CONTEXT} Bedenk één korte, super vrolijke dansopdracht voor Tygo en Duén."
-                    )
-                    st.session_state["huidige_dans_opdracht"] = res.text.strip()
-                except Exception:
-                    st.session_state["huidige_dans_opdracht"] = "Klap in je handjes! Oink!"
-            st.rerun()
-
-    st.info(f"💃 **Boris:** {st.session_state['huidige_dans_opdracht']}")
-    
-    st.components.v1.html(
-        genereer_tts_script(st.session_state["huidige_dans_opdracht"], "🔊 Spreek uit!", "Boris-dance-img"),
-        height=40
-    )
+    st.markdown(f"### 🚧 {st.session_state['huidige_pagina']}")
+    st.info("Deze pagina is in aanbouw of wordt zo geladen.")
