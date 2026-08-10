@@ -227,7 +227,7 @@ if st.session_state["huidige_pagina"] == "Home":
         if st.button("🧸 **Kids Verhaaltje**\n\nVoor Tygo & Duen", key="btn_kids", use_container_width=True):
             with st.spinner("Boris verzint iets..."):
                 prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig verhaaltje (max 4 zines). Richt je tot peuter Tygo en baby Duen."
-                response = client.models.generate_content(model='gemini-3.5-flash', contents=prompt)
+                response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
                 st.session_state['laatste_verhaaltje'] = response.text
                 ga_naar("Kids")
 
@@ -329,7 +329,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "geselecteerd_product" not in st.session_state:
         st.session_state["geselecteerd_product"] = None
 
-    # Schone productnamen zonder specificaties (zoals gewicht/aantal), prijzen per supermarkt zitten apart
     supermarkt_assortiment = {
         "Groente & Fruit": [
             ("🍎", "Appels Elstar", {"AH": "€2,29", "Jumbo": "€2,19"}),
@@ -401,7 +400,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             ("🧂", "Zeezout", {"AH": "€0,65", "Jumbo": "€0,60"}),
             ("🧂", "Zwarte Peper", {"AH": "€1,79", "Jumbo": "€1,69"}),
             ("🌿", "Paprikapoeder", {"AH": "€1,29", "Jumbo": "€1,19"}),
-            ("🌿", "Bouillonblokjes", "AH": "€1,19", "Jumbo": "€1,09"}),
+            ("🌿", "Bouillonblokjes", {"AH": "€1,19", "Jumbo": "€1,09"}),
             ("🥫", "Mayonaise", {"AH": "€2,29", "Jumbo": "€2,19"}),
             ("🍟", "Tomatenketchup", {"AH": "€1,89", "Jumbo": "€1,79"})
         ],
@@ -419,7 +418,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             ("🧼", "Wasmiddel Vloeibaar", {"AH": "€7,99", "Jumbo": "€7,49"}),
             ("🧽", "Vaatdoekjes", {"AH": "€1,39", "Jumbo": "€1,29"}),
             ("🗑️", "Vuilniszakken", {"AH": "€2,49", "Jumbo": "€2,39"}),
-            ("🫧", "Afwasmiddel", "AH: €1,99", "Jumbo": "€1,89"})
+            ("🫧", "Afwasmiddel", {"AH": "€1,99", "Jumbo": "€1,89"})
         ],
         "Drogisterij & Baby": [
             ("👶", "Pampers Luiers", {"Kruidvat": "€14,99", "AH": "€14,49"}),
@@ -437,7 +436,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         ]
     }
 
-    # Strakke kassa-tegel styling (compact, vierkant, strakke randen zoals op een winkelkassa)
     st.markdown("""
         <style>
         .stButton > button {
@@ -504,7 +502,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         actieve_cat = st.session_state["actieve_categorie"]
         geselecteerd_prod = st.session_state["geselecteerd_product"]
         
-        # Als er een specifiek product is aangeklikt om prijzen per winkel te bekijken:
         if geselecteerd_prod is not None:
             prod_naam, prijzen_dict = geselecteerd_prod
             
@@ -518,7 +515,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 
             st.markdown("<p style='color: #aaa; font-size: 0.9rem;'>Vergelijk de prijzen of voeg direct toe aan je lijstje:</p>", unsafe_allow_html=True)
             
-            # Toon knoppen per winkel met prijs, en een knop om direct toe te voegen
             cols_prijs = st.columns(len(prijzen_dict))
             for i, (winkel, prijs) in enumerate(prijzen_dict.items()):
                 with cols_prijs[i % len(cols_prijs)]:
@@ -591,9 +587,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                     col_target = cols[i % 3]
                     with col_target:
                         display_icoon = icoon if len(icoon) <= 2 else "🛒"
-                        # Kassa tegel toont alleen icoon en productnaam, met een klein subtiel ondertekstje voor actie
                         if st.button(f"{display_icoon}\n\n{subitem}", key=f"sub_btn_{actieve_cat}_{i}", use_container_width=True):
-                            # Sla product op en open prijsweergave bij aanklikken van tegel
                             st.session_state["geselecteerd_product"] = (subitem, prijzen_dict)
                             st.rerun()
 
@@ -613,7 +607,7 @@ elif st.session_state["huidige_pagina"] == "Chat":
             with st.spinner("Boris denkt na..."):
                 instructie = """Geef een JSON: {"actie": "boodschap_toevoegen"|"agenda_toevoegen"|"geen", "boodschap": "item"|"", "agenda_datum": "YYYY-MM-DD"|"", "agenda_beschrijving": "omschrijving"|"", "antwoord": "tekst"}"""
                 try:
-                    res = client.models.generate_content(model='gemini-3.5-flash', contents=f"{GEZIN_CONTEXT} Gebruiker zegt: '{user_prompt}'\n{instructie}", config={'response_mime_type': 'application/json'})
+                    res = client.models.generate_content(model='gemini-2.5-flash', contents=f"{GEZIN_CONTEXT} Gebruiker zegt: '{user_prompt}'\n{instructie}", config={'response_mime_type': 'application/json'})
                     data = json.loads(res.text)
                     actie_melding = ""
                     if data.get("actie") == "boodschap_toevoegen" and data.get("boodschap"): voeg_boodschap_toe(data["boodschap"]); actie_melding = f"\n\n*(✅ '{data['boodschap']}' toegevoegd!)*"
@@ -636,7 +630,7 @@ elif st.session_state["huidige_pagina"] == "Recepten":
     if st.button("Genereer Recepten", type="primary") and gekozen_foto:
         with st.spinner("Boris snuffelt..."):
             prompt = f"{GEZIN_CONTEXT}\nKijk naar de foto. Verzin 2 recepten die bederf tegengaan, geschikt voor kinderen (3 en 1). Eindig met JSON: {{\"boodschappen\": [\"item\"]}}."
-            res = client.models.generate_content(model='gemini-3.5-flash', contents=[prompt, Image.open(gekozen_foto)])
+            res = client.models.generate_content(model='gemini-2.5-flash', contents=[prompt, Image.open(gekozen_foto)])
             st.session_state["laatste_recept"] = res.text
             
     if "laatste_recept" in st.session_state:
@@ -662,7 +656,7 @@ elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
 
     if st.button("Scan", type="primary") and gekozen_bon:
         with st.spinner("Scannen..."):
-            res = client.models.generate_content(model='gemini-3.5-flash', contents=[f"{GEZIN_CONTEXT} Vat deze bon samen en markeer het totaalbedrag.", Image.open(gekozen_bon)])
+            res = client.models.generate_content(model='gemini-2.5-flash', contents=[f"{GEZIN_CONTEXT} Vat deze bon samen en markeer het totaalbedrag.", Image.open(gekozen_bon)])
             st.write(res.text)
 
 elif st.session_state["huidige_pagina"] == "Kids":
