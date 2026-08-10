@@ -312,7 +312,8 @@ elif st.session_state["huidige_pagina"] == "Agenda":
                 if datum_str == vandaag_str: cls += " vandaag"
                 if datum_str in agenda_dict: cls += " afspraak"
                 badge = f"<div class='cal-badge'>📌 {len(agenda_dict[datum_str])}</div>" if datum_str in agenda_dict else ""
-                html_cal += f"<div class='{cls}'><span class='date'>{dag}</span>{badge}</div>"
+                html_cal += f"<div class='{cls}'>" \
+                            f"<span class='date'>{dag}</span>{badge}</div>"
                 
     html_cal += "</div>"
     st.markdown(html_cal, unsafe_allow_html=True)
@@ -324,29 +325,141 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# OVERIGE SUBPAGINA'S
+# SUBPAGINA: BOODSCHAPPENLIJST (UITGEBREID ASSORTIMENT)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
-    with st.form("boodschap_form", clear_on_submit=True):
-        nieuw_item = st.text_input("Wat moet er gehaald worden?")
-        if st.form_submit_button("Toevoegen") and nieuw_item:
-            voeg_boodschap_toe(nieuw_item)
-            st.success(f"'{nieuw_item}' staat erop!")
-            st.rerun()
+    if "actieve_categorie" not in st.session_state:
+        st.session_state["actieve_categorie"] = None
 
-    boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
-    if boodschappen_lijst:
-        st.markdown("### Jouw lijst:")
-        indices_om_te_verwijderen = []
-        for idx, item in enumerate(boodschappen_lijst):
-            if st.checkbox(item, key=f"boodschap_{idx}"): indices_om_te_verwijderen.append(idx)
+    # Uitgebreide Nederlandse assortimentslijst per categorie
+    supermarkt_assortiment = {
+        "Groente & Fruit": [
+            ("🍎", "Appels"), ("🍌", "Bananen"), ("🍐", "Peren"), ("🍊", "Sinaasappels"),
+            ("🍓", "Aardbeien"), ("🍇", "Druiven"), ("🥑", "Avocado"), ("🍋", "Citroen"),
+            ("🍅", "Tomaten"), ("🥒", "Komkommer"), ("🥕", "Wortels"), ("🥦", "Broccoli"),
+            ("🥬", "Sla / Rucola"), ("🧅", "Uien"), ("🧄", "Knoflook"), ("🍄", "Champignons"),
+            ("paprika", "Paprika"), ("bloemkool", "Bloemkool"), ("courgette", "Courgette"), ("aardappelen", "Aardappelen")
+        ],
+        "Zuivel & Eieren": [
+            ("🥛", "Halfvolle Melk"), ("🥛", "Volle Melk"), ("🧈", "Boter / Roomboter"),
+            ("🧀", "Jonge Kaas"), ("🧀", "Belegen Kaas"), ("🧀", "Geraspte Kaas"),
+            ("🥚", "Eieren"), ("🥣", "Griekse Yoghurt"), ("🥣", "Kwark"), ("🍮", "Vla / Pudding"),
+            ("🥛", "Koffiemelk"), ("🥛", "Slagroom"), ("🧀", "Hüttenkäse"), ("🧀", "Mozzarella")
+        ],
+        "Brood & Beleg": [
+            ("🍞", "Witbrood"), ("🍞", "Bruinbrood"), ("🍞", "Tijgerbrood"), ("🥖", "Afbakbroodjes"),
+            ("🥐", "Croissants"), ("🍘", "Cracker / Riemen"), ("🍫", "Hagelslag"), ("🥜", "Pindakaas"),
+            ("🍯", "Jam"), ("🍫", "Chocopasta"), ("🥓", "Kipfilet (beleg)"), ("🧀", "Smeerkaas"), ("🥩", "Salami / Metworst")
+        ],
+        "Vlees, Kip & Vis": [
+            ("🥩", "Runder gehakt"), ("🍗", "Kipfilet"), ("🥩", "Biefstuk"), ("🍔", "Hamburgers"),
+            ("🥓", "Spekjes"), ("🐟", "Zalmfilet"), ("🐟", "Witte vis / Kabeljauw"), ("🦐", "Garnalen"),
+            ("🌭", "Knakworsten"), ("🥘", "Schnitzel"), ("🍖", "Worstjes"), ("🐟", "Tonijn (blik)")
+        ],
+        "Drinken": [
+            ("💧", "Mineraalwater"), ("🥤", "Cola / Frisdrank"), ("🧃", "Sinaasappelsap"), ("🧃", "Appelsap"),
+            ("🧃", "Pakjes drinken (Kids)"), ("☕", "Koffiebonen"), ("☕", "Filterkoffie"), ("🍵", "Thee"),
+            ("🍺", "Bier"), ("🍷", "Wijn"), ("🥛", "Chocomel"), ("🧊", "Ijsklontjes")
+        ],
+        "Voorraad & Conserven": [
+            ("🍝", "Spaghetti / Pasta"), ("🍚", "Witte Rijst"), ("🍜", "Noodles"), ("🥫", "Tomatenpurée"),
+            ("🥫", "Pastasaus"), ("🥫", "Soep in blik"), ("🥣", "Bruine bonen"), ("🥣", "Doperwten (pot)"),
+            ("🌽", "Mais (blik)"), ("🥜", "Pinda's / Noten"), ("🍿", "Popcorn"), ("🍯", "Honing"),
+            ("🫒", "Olijfolie"), ("🌻", "Zonnebloemolie"), ("🌾", "Bloem"), ("🧂", "Suiker")
+        ],
+        "Kruiden & Specerijen": [
+            ("🧂", "Zout"), ("🧂", "Peper"), ("🌿", "Paprikapoeder"), ("🌿", "Kerriepoeder"),
+            ("🌿", "Italiaanse Kruiden"), ("🧄", "Knoflookpoeder"), ("🌿", "Bouillonblokjes"), ("🥫", "Mayonaise"),
+            ("🍟", "Ketchup"), ("🟡", "Mosterd"), ("⚪", "Fritessaus"), ("🌶️", "Sambal"), ("🫙", "Sajoh / Sojasaus")
+        ],
+        "Snacks & Snoep": [
+            ("🥔", "Chips Naturel"), ("🌶️", "Chips Paprika"), ("🍪", "Koekjes / Sprits"), ("🍫", "Chocolade (Melk)"),
+            ("🍬", "Snoepjes"), ("🥞", "Pannenkoeken"), ("🧇", "Wafels"), ("🥨", "Zoute Stengels"), ("🍫", "Mueslirepen")
+        ],
+        "Huishouden & Schoonmaak": [
+            ("🧻", "Wc-papier"), ("🧻", "Keukenrol"), ("🧼", "Wasmiddel"), ("🧼", "Wasverzachter"),
+            ("🧽", "Sponzen"), ("🗑️", "Vuilniszakken"), ("🧽", "Allesreiniger"), ("🫧", "Afwasmiddel"),
+            ("🍽️", "Vaatwastabletten"), ("🧽", "Schuurspons"), ("🪟", "Glassex / Ruitenreiniger"), ("🧻", "Vochtig doekje")
+        ],
+        "Drogisterij & Baby": [
+            ("👶", "Luiers (Maat 4/5)"), ("🧻", "Billendoekjes (Pampers)"), ("🧴", "Zinksalte / Billenzalf"),
+            ("🧴", "Babyshampoo"), ("🛁", "Badschuim (Kids)"), ("🦷", "Tandpasta"), ("🪥", "Tandenborstels"),
+            ("🧴", "Shampoo (Ouders)"), ("🧴", "Douchegel"), ("🧴", "Deodorant"), ("🩹", "Pleisters"), ("💊", "Paracetamol")
+        ],
+        "Diepvries": [
+            ("🍟", "Diepvriesfriet"), ("🍕", "Diepvriespizza"), ("🍦", "IJsjes (Cornetto/Magnum)"),
+            ("🥦", "Diepvriesgroente"), ("🐟", "Vissticks"), ("🍲", "Snert / Soep (Diepvries)"), ("🍓", "Vruchten (Diepvries)")
+        ]
+    }
+
+    col_lijst, col_tegels = st.columns([1, 1.3])
+
+    with col_lijst:
+        st.markdown("### 🛒 Shopping List")
         
-        if indices_om_te_verwijderen and st.button("Verwijder geselecteerde items", type="primary"):
-            verwijder_boodschappen_op_index(indices_om_te_verwijderen)
-            st.rerun()
-    else: st.info("De lijst is helemaal leeg. Knap gedaan!")
+        with st.form("boodschap_form", clear_on_submit=True):
+            nieuw_item = st.text_input("Add item...")
+            if st.form_submit_button("Toevoegen") and nieuw_item:
+                voeg_boodschap_toe(nieuw_item)
+                st.rerun()
+
+        boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
+        if boodschappen_lijst:
+            st.markdown("#### Jouw lijst:")
+            indices_om_te_verwijderen = []
+            for idx, item in enumerate(boodschappen_lijst):
+                if st.checkbox(item, key=f"boodschap_{idx}"): indices_om_te_verwijderen.append(idx)
+            
+            if indices_om_te_verwijderen and st.button("Verwijder geselecteerde items", type="primary"):
+                verwijder_boodschappen_op_index(indices_om_te_verwijderen)
+                st.rerun()
+        else: 
+            st.info("De lijst is leeg. Tik rechts op een categorie om items toe te voegen!")
+
+    with col_tegels:
+        actieve_cat = st.session_state["actieve_categorie"]
+        
+        if actieve_cat is None:
+            st.markdown("### 🗂️ Categorieën")
+            c1, c2, c3 = st.columns(3)
+            
+            hoofd_cats = [
+                ("🍎", "Groente & Fruit"), ("🥛", "Zuivel & Eieren"), ("🍞", "Brood & Beleg"),
+                ("🥩", "Vlees, Kip & Vis"), ("🥤", "Drinken"), ("🥫", "Voorraad & Conserven"),
+                ("🌿", "Kruiden & Specerijen"), ("🥔", "Snacks & Snoep"), ("🧼", "Huishouden & Schoonmaak"),
+                ("👶", "Drogisterij & Baby"), ("🍟", "Diepvries")
+            ]
+            
+            for i, (icoon, naam) in enumerate(hoofd_cats):
+                col_target = [c1, c2, c3][i % 3]
+                with col_target:
+                    if st.button(f"{icoon}\n\n{naam}", key=f"hoofd_cat_{i}", use_container_width=True):
+                        st.session_state["actieve_categorie"] = naam
+                        st.rerun()
+        else:
+            # Sub-tegels tonen voor de gekozen categorie
+            col_terug, col_titel_cat = st.columns([1, 3])
+            with col_terug:
+                if st.button("⬅️ Terug"):
+                    st.session_state["actieve_categorie"] = None
+                    st.rerun()
+            with col_titel_cat:
+                st.markdown(f"#### {actieve_cat}")
+            
+            items = supermarkt_assortiment.get(actieve_cat, [])
+            sc1, sc2, sc3 = st.columns(3)
+            
+            for i, (icoon, subitem) in enumerate(items):
+                col_target = [sc1, sc2, sc3][i % 3]
+                with col_target:
+                    # Als icoon een emoji is, tonen we dat, anders een standaard winkelmandje
+                    display_icoon = icoon if len(icoon) <= 2 else "🛒"
+                    if st.button(f"{display_icoon}\n\n{subitem}", key=f"sub_{actieve_cat}_{i}", use_container_width=True):
+                        voeg_boodschap_toe(subitem)
+                        st.success(f"'{subitem}' toegevoegd!")
+                        st.rerun()
 
 elif st.session_state["huidige_pagina"] == "Chat":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -379,7 +492,6 @@ elif st.session_state["huidige_pagina"] == "Chat":
 elif st.session_state["huidige_pagina"] == "Recepten":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
-    # Direct foto maken of uploaden via de telefoon camera!
     camera_file = st.camera_input("📸 Maak direct een foto van je voorraad")
     uploaded_file = st.file_uploader("Of kies een foto uit je galerij", type=["jpg", "png"])
     
