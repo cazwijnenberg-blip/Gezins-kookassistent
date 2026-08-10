@@ -54,7 +54,7 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (GEFORCEERD 4-KOLOMMS APP-GRID) ---
+# --- STYLING (MOBILE-PROOF 4-KOLOMMS APP-GRID) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -66,56 +66,61 @@ st.markdown("""
     .main, .block-container {
         max-width: 100vw !important;
         width: 100% !important;
-        padding-left: 0.3rem !important;
-        padding-right: 0.3rem !important;
+        padding-left: 0.25rem !important;
+        padding-right: 0.25rem !important;
         padding-top: 0.4rem !important;
         overflow-x: hidden !important;
     }
     
-    /* Forceer rijen en kolommen om ALTIJD 4 naast elkaar te blijven (geen automatische mobiele stapeling) */
+    /* Perfect schalende 4-koloms rijen voor mobiel en desktop */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 4px !important;
+        gap: 3px !important;
         width: 100% !important;
+        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        box-sizing: border-box !important;
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        flex: 1 1 25% !important;
+        flex: 1 1 0 !important;
         min-width: 0px !important;
         max-width: 25% !important;
+        box-sizing: border-box !important;
+        padding: 0 !important;
     }
 
-    /* Strakke App-Tegels (Vierkant Raster) */
+    /* Strakke App-Tegels (Klein & Schaalbaar zoals Android/iOS) */
     .stButton > button {
         width: 100% !important;
-        height: 56px !important;
+        height: 52px !important;
         border-radius: 10px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.65rem !important;
+        font-size: 0.6rem !important;
         font-weight: 600 !important;
         text-align: center !important;
-        padding: 2px !important;
-        margin-bottom: 4px !important;
+        padding: 1px !important;
+        margin-bottom: 3px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         align-items: center !important;
-        gap: 2px !important;
+        gap: 1px !important;
         overflow: hidden !important;
         white-space: nowrap !important;
         text-overflow: ellipsis !important;
+        box-sizing: border-box !important;
     }
 
     .stButton > button p, .stButton > button div {
-        font-size: 0.68rem !important;
+        font-size: 0.62rem !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
