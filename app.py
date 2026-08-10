@@ -54,12 +54,11 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (RESPONSIEF & PASSEND OP MOBIEL SCHERM) ---
+# --- STYLING (RESPONSIEF APPS-GRID) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
 
-    /* Voorkom dat elementen buiten het scherm vallen op mobiel */
     * {
         box-sizing: border-box !important;
     }
@@ -89,34 +88,33 @@ st.markdown("""
         max-width: 100% !important;
     }
 
-    /* Compacte POS / Kassa Software Stijl Tegels (Netjes ingepakt binnen het scherm) */
+    /* Strakke App-Tegels (Rastervorm) */
     .stButton > button {
         width: 100% !important;
-        height: 40px !important;
-        border-radius: 6px !important;
+        height: 52px !important;
+        border-radius: 8px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.7rem !important;
+        font-size: 0.68rem !important;
         font-weight: 600 !important;
-        text-align: left !important;
-        padding: 0px 4px !important;
+        text-align: center !important;
+        padding: 2px !important;
         margin-bottom: 3px !important;
         display: flex !important;
-        flex-direction: row !important;
-        justify-content: flex-start !important;
+        flex-direction: column !important;
+        justify-content: center !important;
         align-items: center !important;
-        gap: 4px !important;
+        gap: 2px !important;
         overflow: hidden !important;
         white-space: nowrap !important;
         text-overflow: ellipsis !important;
     }
 
-    /* Zorg dat emoji/tekst netjes compact blijft en niet overlapt */
     .stButton > button p, .stButton > button div {
-        font-size: 0.75rem !important;
+        font-size: 0.7rem !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
@@ -125,7 +123,7 @@ st.markdown("""
     }
 
     .stButton > button:hover, .stButton > button:active {
-        transform: scale(0.98) !important;
+        transform: scale(0.97) !important;
         background-color: #D6EFE0 !important;
         border-color: #2E7D32 !important;
         color: #0E331A !important;
@@ -316,7 +314,7 @@ def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-mai
 
 
 # ==========================================
-# HOOFDSCHERM (DASHBOARD - 3 KOLOMS COMPACT)
+# HOOFDSCHERM (DASHBOARD - 4x4 RASTER APPS)
 # ==========================================
 if st.session_state["huidige_pagina"] == "Home":
     vandaag_str = vandaag.strftime("%Y-%m-%d")
@@ -329,37 +327,28 @@ if st.session_state["huidige_pagina"] == "Home":
     with col_datum:
         st.markdown(f"<p style='text-align: right; font-size: 11px; color: #aaa; margin-top: 5px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
-    r1c1, r1c2, r1c3 = st.columns(3)
-    with r1c1:
-        if st.button("💬 Chat", use_container_width=True, key="btn_chat"): ga_naar("Chat")
-    with r1c2:
-        if st.button(f"📅 Agenda ({aantal_afspraken_komend})", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
-    with r1c3:
-        if st.button(f"🛒 Lijst ({aantal_boodschappen})", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
+    dashboard_knoppen = [
+        ("💬", "Chat", "Chat"),
+        ("📅", f"Agenda ({aantal_afspraken_komend})", "Agenda"),
+        ("🛒", f"Lijst ({aantal_boodschappen})", "Boodschappenlijst"),
+        ("🍽️", "Menu", "Weekmenu"),
+        ("🎯", "Schema", "Dagschema"),
+        ("🌳", "Uitjes", "Activiteiten"),
+        ("💊", "Zorg", "Gezondheid"),
+        ("🧹", "Klusjes", "Huishoud"),
+        ("🔍", "Recept", "Recepten"),
+        ("🧾", "Bon", "Kassabon Scanner"),
+        ("🎵", "Disco", "Kids")
+    ]
 
-    r2c1, r2c2, r2c3 = st.columns(3)
-    with r2c1:
-        if st.button("🍽️ Menu", use_container_width=True, key="btn_weekmenu"): ga_naar("Weekmenu")
-    with r2c2:
-        if st.button("🎯 Schema", use_container_width=True, key="btn_dagschema"): ga_naar("Dagschema")
-    with r2c3:
-        if st.button("🌳 Uitjes", use_container_width=True, key="btn_uitjes"): ga_naar("Activiteiten")
-
-    r3c1, r3c2, r3c3 = st.columns(3)
-    with r3c1:
-        if st.button("💊 Zorg", use_container_width=True, key="btn_gezondheid"): ga_naar("Gezondheid")
-    with r3c2:
-        if st.button("🧹 Klusjes", use_container_width=True, key="btn_huishoud"): ga_naar("Huishoud")
-    with r3c3:
-        if st.button("🔍 Recept", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
-
-    r4c1, r4c2, r4c3 = st.columns(3)
-    with r4c1:
-        if st.button("🧾 Bon", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
-    with r4c2:
-        if st.button("🎵 Disco", use_container_width=True, key="btn_kids"): ga_naar("Kids")
-    with r4c3:
-        pass
+    cols_per_rij = 4
+    for i in range(0, len(dashboard_knoppen), cols_per_rij):
+        rij_items = dashboard_knoppen[i:i+cols_per_rij]
+        cols = st.columns(cols_per_rij)
+        for j, (icoon, tekst, pagina) in enumerate(rij_items):
+            with cols[j]:
+                if st.button(f"{icoon}\n{tekst}", use_container_width=True, key=f"dash_btn_{pagina}"):
+                    ga_naar(pagina)
 
 
 # ==========================================
@@ -457,7 +446,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST
+# SUBPAGINA: BOODSCHAPPENLIJST (4x4 GRID)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
@@ -535,15 +524,17 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         sub_dict = supermarkt_database.get(hoofd_cat, {})
         
         if sub_cat is None:
-            cols = st.columns(4)
-            sub_namen = list(sub_dict.keys())
-            for i, s_naam in enumerate(sub_namen):
-                col_target = cols[i % 4]
-                with col_target:
-                    ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
-                    if st.button(f"{ic} {s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
-                        st.session_state["actieve_sub_cat"] = s_naam
-                        st.rerun()
+            sub_lijst = list(sub_dict.items())
+            cols_per_rij = 4
+            for i in range(0, len(sub_lijst), cols_per_rij):
+                rij = sub_lijst[i:i+cols_per_rij]
+                cols = st.columns(cols_per_rij)
+                for j, (s_naam, items_lijst) in enumerate(rij):
+                    with cols[j]:
+                        ic = items_lijst[0][0] if items_lijst else "🛒"
+                        if st.button(f"{ic}\n{s_naam}", key=f"subcat_btn_{i+j}", use_container_width=True):
+                            st.session_state["actieve_sub_cat"] = s_naam
+                            st.rerun()
         else:
             if st.button("⬅️ Terug naar subcats", key="terug_naar_subs_overzicht"):
                 st.session_state["actieve_sub_cat"] = None
@@ -552,36 +543,40 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             st.markdown(f"**🏷️ {sub_cat}**")
             producten = sub_dict.get(sub_cat, [])
             
-            cols = st.columns(4)
-            for i, (icoon, prod_naam) in enumerate(producten):
-                col_target = cols[i % 4]
-                with col_target:
-                    if st.button(f"{icoon} {prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
-                        voeg_boodschap_toe(prod_naam)
-                        st.toast(f"✅ '{prod_naam}' toegevoegd!")
-                        st.rerun()
+            cols_per_rij = 4
+            for i in range(0, len(producten), cols_per_rij):
+                rij = producten[i:i+cols_per_rij]
+                cols = st.columns(cols_per_rij)
+                for j, (icoon, prod_naam) in enumerate(rij):
+                    with cols[j]:
+                        if st.button(f"{icoon}\n{prod_naam}", key=f"prod_btn_{i+j}", use_container_width=True):
+                            voeg_boodschap_toe(prod_naam)
+                            st.toast(f"✅ '{prod_naam}' toegevoegd!")
+                            st.rerun()
 
     else:
-        hoofd_icoontjes = {
-            "AGF": "🥦",
-            "Zuivel": "🥛",
-            "Vlees/Vis": "🥩",
-            "Brood/Ontbijt": "🥐",
-            "Dranken": "🥤",
-            "Houdbaar": "🥫",
-            "Snacks": "🍫",
-            "Diepvries": "🍕",
-            "Non-Food": "🧻"
-        }
+        hoofd_icoontjes = [
+            ("🥦", "AGF"),
+            ("🥛", "Zuivel"),
+            ("🥩", "Vlees/Vis"),
+            ("🥐", "Brood/Ontbijt"),
+            ("🥤", "Dranken"),
+            ("🥫", "Houdbaar"),
+            ("🍫", "Snacks"),
+            ("🍕", "Diepvries"),
+            ("🧻", "Non-Food")
+        ]
         
-        cols = st.columns(4)
-        for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
-            col_target = cols[i % 4]
-            with col_target:
-                if st.button(f"{icoon} {cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
-                    st.session_state["actieve_hoofd_cat"] = cat_naam
-                    st.session_state["actieve_sub_cat"] = None
-                    st.rerun()
+        cols_per_rij = 4
+        for i in range(0, len(hoofd_icoontjes), cols_per_rij):
+            rij = hoofd_icoontjes[i:i+cols_per_rij]
+            cols = st.columns(cols_per_rij)
+            for j, (icoon, cat_naam) in enumerate(rij):
+                with cols[j]:
+                    if st.button(f"{icoon}\n{cat_naam}", key=f"hoofd_cat_{i+j}", use_container_width=True):
+                        st.session_state["actieve_hoofd_cat"] = cat_naam
+                        st.session_state["actieve_sub_cat"] = None
+                        st.rerun()
 
     st.markdown("---")
 
