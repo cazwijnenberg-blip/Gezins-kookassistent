@@ -71,63 +71,75 @@ def parse_json_veilig(tekst):
 
 
 # ==========================================
-# 4. COMPACTE MOBIELE STYLING
+# 4. COMPACTE EN GELIJKMATIGE STYLING
 # ==========================================
 st.markdown(
     """
     <style>
     [data-testid="collapsedControl"] { display: none; }
 
-    /* Voorkom horizontaal scrollen op mobiel */
-    .main, .block-container {
+    /* Ruimte bovenaan toevoegen zodat knoppen niet onder de statusbalk vallen */
+    .main .block-container {
         max-width: 100% !important;
-        padding: 0.5rem 0.4rem !important;
+        padding-top: 3.5rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
         overflow-x: hidden !important;
     }
     
-    /* Dwing 2 kolommen af op mobiel zonder uitsteken */
+    /* Gelijkmatige verdeling van kolommen */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         gap: 6px !important;
         width: 100% !important;
-        margin-bottom: 4px !important;
+        margin-bottom: 6px !important;
+        align-items: stretch !important;
     }
     
     div[data-testid="column"], div[data-testid="stColumn"] {
-        flex: 1 1 50% !important;
+        flex: 1 1 0 !important;
         min-width: 0 !important;
-        width: 50% !important;
-        max-width: 50% !important;
+        width: 100% !important;
     }
 
-    /* Tegelknoppen: Compact & Duidelijk */
+    .stButton {
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Tegelknoppen: Exact gelijke grootte, uitlijning en strakke tekstafhandeling */
     .stButton > button {
         width: 100% !important;
-        min-height: 60px !important;
+        height: 72px !important;
+        min-height: 72px !important;
+        max-height: 72px !important;
         border-radius: 12px !important;
         background: linear-gradient(145deg, #f0f7f2, #e1efe4) !important;
         color: #1B4D2E !important;
         border: 1px solid #d0e5d4 !important;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.75rem !important;
+        font-size: 0.70rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
-        padding: 4px !important;
-        margin-bottom: 2px !important;
-        line-height: 1.15 !important;
+        padding: 4px 2px !important;
+        margin: 0 !important;
+        line-height: 1.1 !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         align-items: center !important;
+        word-break: normal !important;
+        overflow: hidden !important;
     }
 
     /* Pictogram vergroten op eerste regel */
     .stButton > button p::first-line {
-        font-size: 1.3rem !important;
+        font-size: 1.25rem !important;
         line-height: 1.2 !important;
     }
 
@@ -422,7 +434,7 @@ if st.session_state["huidige_pagina"] == "Home":
 
     col_titel, col_datum = st.columns([3, 1])
     with col_titel:
-        st.markdown("### 🏠 Zwijnenberg Assist")
+        st.markdown("### 🐷 Zwijnenberg Assist")
     with col_datum:
         st.markdown(
             f"<p style='text-align: right; font-size: 12px; color: #aaa; margin-top: 5px;'>{vandaag.strftime('%d-%m-%Y')}</p>",
@@ -483,7 +495,7 @@ if st.session_state["huidige_pagina"] == "Home":
 # SUBPAGINA: AGENDA
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Agenda":
-    if st.button("🔙 Terug naar Home", key="back_agenda"):
+    if st.button("⬅️ Terug naar Home", key="back_agenda"):
         ga_naar("Home")
 
     st.markdown("#### ➕ Nieuwe afspraak")
@@ -604,7 +616,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         del st.query_params["spraak_input"]
         st.rerun()
 
-    if st.button("🔙 Terug naar Home", key="back_boodschappen"):
+    if st.button("⬅️ Terug naar Home", key="back_boodschappen"):
         ga_naar("Home")
 
     if "actieve_hoofd_cat" not in st.session_state:
@@ -724,7 +736,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         },
     }
 
-    st.markdown("#### 🗂️ Categorieën")
+    st.markdown("#### 📁 Categorieën")
     hoofd_cat = st.session_state["actieve_hoofd_cat"]
     sub_cat = st.session_state["actieve_sub_cat"]
 
@@ -773,7 +785,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             "AGF": "🥦",
             "Zuivel": "🥛",
             "Vlees/Vis": "🥩",
-            "Brood/Ontbijt": "🥐",
+            "Brood / Ontbijt": "🥐",
             "Dranken": "🥤",
             "Houdbaar": "🥫",
             "Snacks": "🍫",
@@ -785,8 +797,10 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
             col_target = cols[i % 4]
             with col_target:
+                # Koppel de categorie-naam terug zonder spaties voor de database
+                db_sleutel = "Brood/Ontbijt" if cat_naam == "Brood / Ontbijt" else cat_naam
                 if st.button(f"{icoon}\n{cat_naam}", key=f"hoofd_cat_{i}"):
-                    st.session_state["actieve_hoofd_cat"] = cat_naam
+                    st.session_state["actieve_hoofd_cat"] = db_sleutel
                     st.session_state["actieve_sub_cat"] = None
                     st.rerun()
 
@@ -896,7 +910,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
 # SUBPAGINA: WEEKMENU
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Weekmenu":
-    if st.button("🔙 Terug naar Home", key="back_weekmenu"):
+    if st.button("⬅️ Terug naar Home", key="back_weekmenu"):
         ga_naar("Home")
 
     st.markdown("### 🍽️ Slim Weekmenu & Boodschappen")
@@ -964,7 +978,7 @@ elif st.session_state["huidige_pagina"] == "Weekmenu":
 # SUBPAGINA: DAGSCHEMA
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Dagschema":
-    if st.button("🔙 Terug naar Home", key="back_dagschema"):
+    if st.button("⬅️ Terug naar Home", key="back_dagschema"):
         ga_naar("Home")
 
     st.markdown("### 🎯 Dagschema & Routines")
@@ -1001,7 +1015,7 @@ elif st.session_state["huidige_pagina"] == "Dagschema":
 # SUBPAGINA: ACTIVITEITEN / UITJES
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Activiteiten":
-    if st.button("🔙 Terug naar Home", key="back_activiteiten"):
+    if st.button("⬅️ Terug naar Home", key="back_activiteiten"):
         ga_naar("Home")
 
     st.markdown("### 🌳 Uitjes & Activiteiten")
@@ -1027,7 +1041,7 @@ elif st.session_state["huidige_pagina"] == "Activiteiten":
 # SUBPAGINA: GEZONDHEID
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Gezondheid":
-    if st.button("🔙 Terug naar Home", key="back_gezondheid"):
+    if st.button("⬅️ Terug naar Home", key="back_gezondheid"):
         ga_naar("Home")
 
     st.markdown("### 💊 Gezondheid & Logboek")
@@ -1059,7 +1073,7 @@ elif st.session_state["huidige_pagina"] == "Gezondheid":
 # SUBPAGINA: HUISHOUD
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Huishoud":
-    if st.button("🔙 Terug naar Home", key="back_huishoud"):
+    if st.button("⬅️ Terug naar Home", key="back_huishoud"):
         ga_naar("Home")
 
     st.markdown("### 🧹 Huishoudelijke Taken")
@@ -1085,7 +1099,7 @@ elif st.session_state["huidige_pagina"] == "Huishoud":
 # SUBPAGINA: RECEPTEN
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Recepten":
-    if st.button("🔙 Terug naar Home", key="back_recepten"):
+    if st.button("⬅️ Terug naar Home", key="back_recepten"):
         ga_naar("Home")
 
     st.markdown("### 🔍 Recepten Bedenken")
@@ -1107,7 +1121,7 @@ elif st.session_state["huidige_pagina"] == "Recepten":
 # SUBPAGINA: KASSABON SCANNER
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
-    if st.button("🔙 Terug naar Home", key="back_bonnen"):
+    if st.button("⬅️ Terug naar Home", key="back_bonnen"):
         ga_naar("Home")
 
     st.markdown("### 🧾 Kassabon Scanner")
@@ -1146,7 +1160,7 @@ elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
 # SUBPAGINA: KIDS (MINI-DISCO)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Kids":
-    if st.button("🔙 Terug naar Home", key="back_kids"):
+    if st.button("⬅️ Terug naar Home", key="back_kids"):
         ga_naar("Home")
 
     st.markdown("### 🎵 Mini-Disco met Boris")
@@ -1163,7 +1177,7 @@ elif st.session_state["huidige_pagina"] == "Kids":
 # SUBPAGINA: CHAT MET BORIS
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Chat":
-    if st.button("🔙 Terug naar Home", key="back_chat"):
+    if st.button("⬅️ Terug naar Home", key="back_chat"):
         ga_naar("Home")
 
     st.markdown("### 💬 Chat met Boris")
