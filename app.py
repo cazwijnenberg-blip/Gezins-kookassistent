@@ -318,7 +318,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (GROOT VISUEEL RASTER VAN 3 BREED)
+# SUBPAGINA: BOODSCHAPPENLIJST (HELE TEGEL IS TOEVOEGEN KNOP)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -326,7 +326,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "actieve_categorie" not in st.session_state:
         st.session_state["actieve_categorie"] = None
 
-    # Uitgebreide online database van AH & Jumbo
     supermarkt_assortiment = {
         "Fruits & Vegetables": [
             ("🍎", "Elstar Appels (1kg)", "AH: €2,29 / Jumbo: €2,19"),
@@ -434,40 +433,32 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         ]
     }
 
-    # CSS Styling voor donkere modus, grotere visuele tegels in een raster van 3 breed
+    # Styling om Streamlit knoppen om te toveren tot dikke visuele tegels (raster van 3 breed)
     st.markdown("""
         <style>
-        .product-card {
-            background-color: #1a1a1a;
-            border: 1px solid #333333;
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+        .stButton > button {
+            width: 100%;
+            min-height: 110px !important;
+            white-space: pre-wrap !important;
+            border-radius: 16px !important;
+            border: 1px solid #333333 !important;
+            background-color: #1a1a1a !important;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s ease-in-out;
+            font-size: 1rem !important;
+            color: #ffffff !important;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            min-height: 140px;
-            transition: all 0.2s ease;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.3;
         }
-        .product-card:hover {
-            border-color: #4CAF50;
-            box-shadow: 0 6px 15px rgba(76,175,80,0.2);
-        }
-        .cat-card-btn {
-            width: 100%;
-            min-height: 120px !important;
-            border-radius: 16px !important;
-            background-color: #1a1a1a !important;
-            border: 1px solid #333333 !important;
-            color: #ffffff !important;
-            font-size: 1.05rem !important;
-            font-weight: 600 !important;
-        }
-        .cat-card-btn:hover {
+        
+        .stButton > button:hover, .stButton > button:active {
             border-color: #4CAF50 !important;
-            background-color: #222222 !important;
             color: #4CAF50 !important;
+            background-color: #222222 !important;
+            transform: scale(0.98);
         }
         </style>
     """, unsafe_allow_html=True)
@@ -499,7 +490,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             st.markdown("""
                 <div style="background-color: #1a1a1a; border: 2px dashed #444; border-radius: 16px; padding: 25px; text-align: center; color: #888; margin-top: 15px;">
                     <h4>Je lijstje is leeg! 📭</h4>
-                    <p style="font-size: 0.9rem; margin-bottom: 0;">Tik rechts op een categorie om snel jullie favoriete producten toe te voegen.</p>
+                    <p style="font-size: 0.9rem; margin-bottom: 0;">Tik rechts op een categorie om direct jullie favoriete producten toe te voegen.</p>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -525,18 +516,18 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 ("💊", "Health Care")
             ]
             
-            # STRIKTE 3 BREED RASTER VOOR CATEGORIEËN
+            # Raster van 3 breed voor categorieën
             cols = st.columns(3)
             for i, (icoon, naam) in enumerate(hoofd_cats):
                 col_target = cols[i % 3]
                 with col_target:
-                    if st.button(f"<span style='font-size: 2rem;'>{icoon}</span><br><br>{naam}", key=f"hoofd_cat_{i}", use_container_width=True):
+                    if st.button(f"{icoon}\n\n{naam}", key=f"hoofd_cat_{i}", use_container_width=True):
                         st.session_state["actieve_categorie"] = naam
                         st.rerun()
         else:
             col_terug, col_titel_cat = st.columns([1, 3])
             with col_terug:
-                if st.button("⬅️ Terug"):
+                if st.button("⬅️ Terug", key="terug_naar_cats"):
                     st.session_state["actieve_categorie"] = None
                     st.rerun()
             with col_titel_cat:
@@ -549,48 +540,28 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 if not gesorteerde_historie:
                     st.info("Nog geen eerdere items opgeslagen! Voeg wat toe via categorieën of handmatig.")
                 else:
-                    # STRIKTE 3 BREED RASTER VOOR HISTORIE
+                    # Raster van 3 breed voor historie items (gehele tegel is toevoegen)
                     cols = st.columns(3)
                     for i, (item_naam, count) in enumerate(gesorteerde_historie):
                         col_target = cols[i % 3]
                         with col_target:
-                            st.markdown(f"""
-                                <div class="product-card">
-                                    <div>
-                                        <div style="font-size: 1rem; font-weight: bold; color: #fff;">⭐ {item_naam}</div>
-                                        <div style="font-size: 0.75rem; color: #aaa; margin-top: 4px;">Al {count}x toegevoegd</div>
-                                    </div>
-                            """, unsafe_allow_html=True)
-                            
-                            if st.button("➕ Voeg toe", key=f"hist_btn_{i}", use_container_width=True):
+                            if st.button(f"⭐ {item_naam}\n\n(Al {count}x gekozen)", key=f"hist_btn_{i}", use_container_width=True):
                                 voeg_boodschap_toe(item_naam)
                                 st.success(f"'{item_naam}' toegevoegd!")
                                 st.rerun()
-                                
-                            st.markdown("</div>", unsafe_allow_html=True)
             else:
                 items = supermarkt_assortiment.get(actieve_cat, [])
                 
-                # STRIKTE 3 BREED RASTER VOOR PRODUCTEN
+                # Raster van 3 breed voor producten (gehele tegel is toevoegen)
                 cols = st.columns(3)
                 for i, (icoon, subitem, prijzen_info) in enumerate(items):
                     col_target = cols[i % 3]
                     with col_target:
                         display_icoon = icoon if len(icoon) <= 2 else "🛒"
-                        st.markdown(f"""
-                            <div class="product-card">
-                                <div>
-                                    <div style="font-size: 1rem; font-weight: bold; color: #ffffff;">{display_icoon} {subitem}</div>
-                                    <div style="font-size: 0.75rem; color: #aaa; margin-top: 6px; line-height: 1.3; background-color: #222222; padding: 5px 8px; border-radius: 8px; border: 1px solid #333;">🏷️ {prijzen_info}</div>
-                                </div>
-                        """, unsafe_allow_html=True)
-                        
-                        if st.button("➕ Voeg toe", key=f"sub_btn_{actieve_cat}_{i}", use_container_width=True):
+                        if st.button(f"{display_icoon} {subitem}\n\n🏷️ {prijzen_info}", key=f"sub_btn_{actieve_cat}_{i}", use_container_width=True):
                             voeg_boodschap_toe(subitem)
                             st.success(f"'{subitem}' toegevoegd!")
                             st.rerun()
-                            
-                        st.markdown("</div>", unsafe_allow_html=True)
 
 elif st.session_state["huidige_pagina"] == "Chat":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
