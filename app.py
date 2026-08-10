@@ -54,17 +54,26 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (SUPER COMPACTE TEGELS + 100% GROTERE PICTOGRAMMEN) ---
+# --- STYLING (MOBIEL GEOPTIMALISEERD: VIERKANT + ROUNDED CORNERS + GEEN HORIZONTAAL SCROLLEN) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
+
+    /* Voorkom horizontaal scrollen van de hele pagina op mobiel */
+    .main, .block-container {
+        max-width: 100% !important;
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
+        overflow-x: hidden !important;
+    }
     
-    /* Dwing horizontale blokken af om NIET te stapelen op mobiel */
+    /* Dwing horizontale blokken af om NIET uit te steken of te scrollen */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 4px !important;
+        gap: 8px !important;
+        width: 100% !important;
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
@@ -72,33 +81,37 @@ st.markdown("""
         flex: 1 1 0px !important;
     }
 
-    /* Tegelknoppen Stijl - Super Compact voor Mobiel Scherm */
+    /* Tegelknoppen Stijl: Exact Vierkant + Ronde Hoeken */
     .stButton > button {
         width: 100% !important;
-        min-height: 48px !important; /* Teruggebracht van 65px voor direct mobiel overzicht */
+        aspect-ratio: 1 / 1 !important; /* 1. Zorgt voor een perfect vierkante knop */
+        border-radius: 16px !important;  /* 2. Mooie afgeronde hoeken */
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
-        border-radius: 10px !important;
         border: 1px solid #D2E7D6 !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12) !important;
-        transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.72rem !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+        transition: transform 0.12s ease, background-color 0.12s ease !important;
+        font-size: 0.75rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
-        padding: 2px 1px !important;
+        padding: 4px !important;
         margin-bottom: 2px !important;
-        line-height: 1.1 !important;
+        line-height: 1.15 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
 
-    /* Pictogrammen (eerste regel van tegelknoppen) 100% vergroten */
+    /* Pictogrammen (eerste regel van tegelknoppen) */
     .stButton > button p::first-line {
-        font-size: 1.5rem !important; /* Dubbel zo groot pictogram */
+        font-size: 1.6rem !important; /* Pictogram formaat */
         line-height: 1.2 !important;
     }
 
     .stButton > button:hover, .stButton > button:active {
-        transform: scale(0.97) !important;
+        transform: scale(0.95) !important;
         background-color: #E1F0E6 !important;
         border-color: #2E7D32 !important;
         color: #0E331A !important;
@@ -376,7 +389,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (GROTE PICTOGRAMMEN + 4x4 RASTER)
+# SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
@@ -438,9 +451,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         }
     }
 
-    # ----------------------------------------------------
-    # DEEL 1: CATEGORIEËN IN COMPACT 4-KOLOMS RASTER
-    # ----------------------------------------------------
+    # DEEL 1: CATEGORIEËN
     st.markdown("#### 🗂️ Categorieën")
     
     hoofd_cat = st.session_state["actieve_hoofd_cat"]
@@ -508,9 +519,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
 
     st.markdown("---")
 
-    # ----------------------------------------------------
     # DEEL 2: SNEL & SPRAAK TOEVOEGEN
-    # ----------------------------------------------------
     with st.form("boodschap_form", clear_on_submit=True):
         col_in, col_btn = st.columns([3, 1])
         with col_in:
@@ -583,9 +592,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
 
     st.markdown("---")
 
-    # ----------------------------------------------------
-    # DEEL 3: HET BOODSCHAPPENLIJSTJE
-    # ----------------------------------------------------
+    # DEEL 3: BOODSCHAPPENLIJST
     st.markdown("#### 🛒 Mijn Lijstje")
     
     boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
@@ -711,7 +718,7 @@ elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
 
 
 # ==========================================
-# SUBPAGINA: BORIS' MINI-DISCO & BEWEGINGSSPEL
+# SUBPAGINA: BORIS' MINI-DISCO
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Kids":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -726,34 +733,3 @@ elif st.session_state["huidige_pagina"] == "Kids":
             <img src="{IMAGE_SRC}" id="Boris-dance-img" style="width: 120px; height: 120px; border-radius:50%; object-fit:cover; border: 4px solid #4CAF50;">
         </div>
     """, unsafe_allow_html=True)
-
-    BEWEGINGS_OPDRACHTEN = [
-        {"emoji": "🐘", "tekst": "Oink oink! Tygo en Duén, stamp 5 keer als een hele grote, zware olifant! Stamp! Stamp! Stamp!"},
-        {"emoji": "🐸", "tekst": "Oink! Spring 3 keer heel hoog in de lucht als een groene kikker! Boing boing boing!"},
-        {"emoji": "👏", "tekst": "Oink! Klap allemaal heel hard in je handen en roep heel hard: HOERA FOR BORIS!"},
-        {"emoji": "🫂", "tekst": "Oink! Tijd voor liefde! Geef Duén en Tygo elkaar snel een hele dikke knuffel!"},
-        {"emoji": "🦁", "tekst": "Oink! Doe je handen omhoog en roor zo hard als een hele gevaarlijke leeuw! ROAARRR!"},
-        {"emoji": "💃", "tekst": "Oink! Draai een heel snel rondje en dans als een vrolijk gekkie door de kamer!"},
-        {"emoji": "🐵", "tekst": "Oink! Krab onder je oksels en maak echte apengeluiden! Oe-oe-ah-ah!"}
-    ]
-
-    if "actieve_opdracht" not in st.session_state:
-        st.session_state["actieve_opdracht"] = random.choice(BEWEGINGS_OPDRACHTEN)
-
-    opdracht = st.session_state["actieve_opdracht"]
-
-    st.markdown(f"""
-        <div style="background-color: #1a1a1a; border: 2px solid #2E7D32; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 15px;">
-            <h1 style="font-size: 60px; margin: 0;">{opdracht['emoji']}</h1>
-            <p style="font-size: 1.1rem; font-weight: bold; color: #EBF5EE; margin-top: 10px;">"{opdracht['tekst']}"</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    st.components.v1.html(genereer_tts_script(opdracht['tekst'], "🔊 Luister naar Boris", "Boris-dance-img", auto_play=True), height=45)
-
-    st.markdown("---")
-    
-    if st.button("🎲 Druk voor een NIEUWE Dansopdracht!", use_container_width=True):
-        st.balloons()
-        st.session_state["actieve_opdracht"] = random.choice(BEWEGINGS_OPDRACHTEN)
-        st.rerun()
