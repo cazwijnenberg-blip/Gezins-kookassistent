@@ -66,7 +66,10 @@ def laad_data():
     if os.path.exists(DATA_BESTAND):
         try:
             with open(DATA_BESTAND, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if "boodschappen_historie" not in data:
+                    data["boodschappen_historie"] = {}
+                return data
         except json.JSONDecodeError:
             pass
             
@@ -76,7 +79,8 @@ def laad_data():
             {"datum": "2026-06-11", "beschrijving": "🎂 Verjaardag Duen (1 jr)"},
             {"datum": "2026-10-24", "beschrijving": "🎂 Verjaardag Tygo (3 jr)"}
         ],
-        "boodschappen": []
+        "boodschappen": [],
+        "boodschappen_historie": {}
     }
     sla_data_op(standaard_data)
     return standaard_data
@@ -96,10 +100,20 @@ def voeg_agenda_toe(datum, beschrijving):
     sla_data_op(st.session_state["gezin_data"])
 
 def voeg_boodschap_toe(item):
-    if "boodschappen" not in st.session_state["gezin_data"]: st.session_state["gezin_data"]["boodschappen"] = []
+    if "boodschappen" not in st.session_state["gezin_data"]: 
+        st.session_state["gezin_data"]["boodschappen"] = []
+    if "boodschappen_historie" not in st.session_state["gezin_data"]: 
+        st.session_state["gezin_data"]["boodschappen_historie"] = {}
+        
+    # Voeg toe aan actieve lijst als hij er nog niet staat
     if item not in st.session_state["gezin_data"]["boodschappen"]:
         st.session_state["gezin_data"]["boodschappen"].append(item)
-        sla_data_op(st.session_state["gezin_data"])
+        
+    # Werk historie / teller bij voor het geheugen
+    historie = st.session_state["gezin_data"]["boodschappen_historie"]
+    historie[item] = historie.get(item, 0) + 1
+    
+    sla_data_op(st.session_state["gezin_data"])
 
 def verwijder_boodschappen_op_index(indices_om_te_verwijderen):
     huidige = st.session_state["gezin_data"].get("boodschappen", [])
@@ -146,7 +160,7 @@ if st.session_state["huidige_pagina"] == "Home":
         <style>
         .stButton > button {
             width: 100%;
-            min-height: 120px;
+            min-height: 100px;
             white-space: pre-wrap !important;
             border-radius: 16px;
             border: 1px solid #c8e6c9;
@@ -159,7 +173,7 @@ if st.session_state["huidige_pagina"] == "Home":
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            line-height: 1.5;
+            line-height: 1.4;
         }
         
         .stButton > button:hover, .stButton > button:active {
@@ -167,24 +181,6 @@ if st.session_state["huidige_pagina"] == "Home":
             color: #004d40;
             background-color: #e8f5e9;
             transform: scale(0.98);
-        }
-        
-        @media (max-width: 768px) {
-            div[data-testid="stHorizontalBlock"] {
-                flex-wrap: wrap !important;
-                gap: 2% !important;
-                justify-content: center;
-            }
-            div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-                min-width: 31% !important; 
-                flex: 1 1 31% !important;
-                margin-bottom: 10px;
-            }
-            .stButton > button {
-                min-height: 100px !important;
-                font-size: 0.85rem !important;
-                padding: 5px !important;
-            }
         }
         </style>
     """, unsafe_allow_html=True)
@@ -202,36 +198,36 @@ if st.session_state["huidige_pagina"] == "Home":
     base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
     IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    
-    with c1:
+    # 2 knopen per rij raster voor het homescreen
+    r1c1, r1c2 = st.columns(2)
+    with r1c1:
         st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 5px;">
-                <img src="{IMAGE_SRC}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border: 2px solid #81c784; box-shadow: 0 0 10px rgba(129,199,132,0.5);">
-            </div>
+            <div style="display: flex; align-items: center; gap: 10px; background-color: #f1f8f5; padding: 15px; border-radius: 16px; border: 1px solid #c8e6c9; margin-bottom: 10px;">
+                <img src="{IMAGE_SRC}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border: 2px solid #81c784;">
+                <div style="flex-grow: 1;">
         """, unsafe_allow_html=True)
-        if st.button("💬 **Chat**\n\nmet Boris", key="btn_chat", use_container_width=True):
+        if st.button("💬 **Chat met Boris**", key="btn_chat", use_container_width=True):
             ga_naar("Chat")
-
-    with c2:
-        # Aangepast van "Lijst" naar "Boodschappenlijst"
-        if st.button(f"🛒 **Boodschappen**\n\n{aantal_boodschappen} items", key="btn_boodschappen", use_container_width=True):
+        st.markdown("</div></div>", unsafe_allow_html=True)
+        
+    with r1c2:
+        if st.button(f"🛒 **Boodschappenlijst**\n\n{aantal_boodschappen} items op lijst", key="btn_boodschappen", use_container_width=True):
             ga_naar("Boodschappenlijst")
 
-    with c3:
-        if st.button(f"📅 **Agenda**\n\n{aantal_afspraken_komend} gepland", key="btn_agenda", use_container_width=True):
+    r2c1, r2c2 = st.columns(2)
+    with r2c1:
+        if st.button(f"📅 **Agenda**\n\n{aantal_afspraken_komend} afspraken gepland", key="btn_agenda", use_container_width=True):
             ga_naar("Agenda")
-
-    with c4:
-        if st.button("🍳 **Koken**\n\nRecepten", key="btn_recepten", use_container_width=True):
+    with r2c2:
+        if st.button("🍳 **Koken & Recepten**\n\nVoorraad check", key="btn_recepten", use_container_width=True):
             ga_naar("Recepten")
 
-    with c5:
-        if st.button("🧾 **Bonnen**\n\nScanner", key="btn_bonnen", use_container_width=True):
+    r3c1, r3c2 = st.columns(2)
+    with r3c1:
+        if st.button("🧾 **Kassabon Scanner**\n\nBewaar & analyseer", key="btn_bonnen", use_container_width=True):
             ga_naar("Kassabon Scanner")
-
-    with c6:
-        if st.button("🧸 **Kids**\n\nVerhaaltje", key="btn_kids", use_container_width=True):
+    with r3c2:
+        if st.button("🧸 **Kids Verhaaltje**\n\nVoor Tygo & Duen", key="btn_kids", use_container_width=True):
             with st.spinner("Boris verzint iets..."):
                 prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig verhaaltje (max 4 zinnen). Richt je tot peuter Tygo en baby Duen."
                 response = client.models.generate_content(model='gemini-3.5-flash', contents=prompt)
@@ -325,7 +321,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (MET PRIJZEN & ASSORTIMENT)
+# SUBPAGINA: BOODSCHAPPENLIJST (MET 3/4 RASTER LAYOUT + GEHEUGEN)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -333,7 +329,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "actieve_categorie" not in st.session_state:
         st.session_state["actieve_categorie"] = None
 
-    # Assortiment met geschatte indicatieprijzen voor NL (AH, Jumbo, Lidl)
     supermarkt_assortiment = {
         "Groente & Fruit": [
             ("🍎", "Appels", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,89 (1kg)"), 
@@ -352,10 +347,10 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             ("🧅", "Uien", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (1kg)"), 
             ("🧄", "Knoflook", "AH: €0,75 / Jumbo: €0,69 / Lidl: €0,59 (per stuk)"), 
             ("🍄", "Champignons", "AH: €1,59 / Jumbo: €1,49 / Lidl: €1,29 (250g)"),
-            ("paprika", "Paprika", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (3-pack)"), 
-            ("bloemkool", "Bloemkool", "AH: €2,19 / Jumbo: €1,99 / Lidl: €1,79 (per stuk)"), 
-            ("courgette", "Courgette", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (per stuk)"), 
-            ("aardappelen", "Aardappelen", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (2.5kg)")
+            ("🫑", "Paprika", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (3-pack)"), 
+            ("🥦", "Bloemkool", "AH: €2,19 / Jumbo: €1,99 / Lidl: €1,79 (per stuk)"), 
+            ("🥒", "Courgette", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (per stuk)"), 
+            ("🥔", "Aardappelen", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (2.5kg)")
         ],
         "Zuivel & Eieren": [
             ("🥛", "Halfvolle Melk", "AH: €1,15 / Jumbo: €1,12 / Lidl: €1,05 (1L)"), 
@@ -404,7 +399,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         ],
         "Drinken": [
             ("💧", "Mineraalwater", "AH: €0,65 / Jumbo: €0,60 / Lidl: €0,49 (1.5L)"), 
-            ("🥤", "Cola / Frisdrank", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,69 (1.5L A-merk/huismerk)"), 
+            ("🥤", "Cola / Frisdrank", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,69 (1.5L)"), 
             ("🧃", "Sinaasappelsap", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (1L vers)"), 
             ("🧃", "Appelsap", "AH: €1,59 / Jumbo: €1,49 / Lidl: €1,29 (1L)"),
             ("🧃", "Pakjes drinken (Kids)", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (10-pack)"), 
@@ -453,9 +448,9 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             ("🥔", "Chips Naturel", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,29 (zak)"), 
             ("🌶️", "Chips Paprika", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,29 (zak)"), 
             ("🍪", "Koekjes / Sprits", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (pak)"), 
-            ("🍫", "Chocolade (Melk)", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,69 (reep A-merk/huismerk)"),
+            ("🍫", "Chocolade (Melk)", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,69 (reep)"),
             ("🍬", "Snoepjes", "AH: €1,49 / Jumbo: €1,39 / Lidl: €1,19 (zak)"), 
-            ("🥞", "Pannenkoeken", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,39 (pak kant-en-klaar)"), 
+            ("🥞", "Pannenkoeken", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,39 (pak)"), 
             ("🧇", "Wafels", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,29 (pak)"), 
             ("🥨", "Zoute Stengels", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (zak)"), 
             ("🍫", "Mueslirepen", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (doosje)")
@@ -490,8 +485,8 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         ],
         "Diepvries": [
             ("🍟", "Diepvriesfriet", "AH: €2,39 / Jumbo: €2,29 / Lidl: €1,79 (1.5kg)"), 
-            ("🍕", "Diepvriespizza", "AH: €2,89 / Jumbo: €2,79 / Lidl: €2,19 (Dr. Oetker/huismerk)"), 
-            ("🍦", "IJsjes (Cornetto/Magnum)", "AH: €3,99 / Jumbo: €3,79 / Lidl: €2,99 (pak)"),
+            ("🍕", "Diepvriespizza", "AH: €2,89 / Jumbo: €2,79 / Lidl: €2,19 (pizza)"), 
+            ("🍦", "IJsjes (Magnum/Cornetto)", "AH: €3,99 / Jumbo: €3,79 / Lidl: €2,99 (pak)"),
             ("🥦", "Diepvriesgroente", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,39 (zak 750g)"), 
             ("🐟", "Vissticks", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (10 stuks)"), 
             ("🍲", "Snert / Soep (Diepvries)", "AH: €2,99 / Jumbo: €2,79 / Lidl: €2,29 (bak)"), 
@@ -499,47 +494,58 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         ]
     }
 
-    col_lijst, col_tegels = st.columns([1, 1.3])
+    col_lijst, col_tegels = st.columns([1, 1.4])
 
     with col_lijst:
-        st.markdown("### 🛒 Shopping List")
+        st.markdown("### 🛒 Boodschappenlijst")
         
         with st.form("boodschap_form", clear_on_submit=True):
-            nieuw_item = st.text_input("Add item...")
+            nieuw_item = st.text_input("Voeg handmatig toe...")
             if st.form_submit_button("Toevoegen") and nieuw_item:
                 voeg_boodschap_toe(nieuw_item)
                 st.rerun()
 
         boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
         if boodschappen_lijst:
-            st.markdown("#### Jouw lijst:")
+            st.markdown("#### Jouw lijstje:")
             indices_om_te_verwijderen = []
             for idx, item in enumerate(boodschappen_lijst):
                 if st.checkbox(item, key=f"boodschap_{idx}"): indices_om_te_verwijderen.append(idx)
             
-            if indices_om_te_verwijderen and st.button("Verwijder geselecteerde items", type="primary"):
+            if indices_om_te_verwijderen and st.button("Verwijder aangevinkt", type="primary"):
                 verwijder_boodschappen_op_index(indices_om_te_verwijderen)
                 st.rerun()
         else: 
-            st.info("De lijst is leeg. Tik rechts op een categorie om items toe te voegen!")
+            st.info("De lijst is leeg. Tik rechts op categorieën om items toe te voegen!")
 
     with col_tegels:
         actieve_cat = st.session_state["actieve_categorie"]
         
         if actieve_cat is None:
             st.markdown("### 🗂️ Categorieën")
-            c1, c2, c3 = st.columns(3)
             
             hoofd_cats = [
+                ("🌟", "Eerder Gekozen & Vaak Gebruikt"),
                 ("🍎", "Groente & Fruit"), ("🥛", "Zuivel & Eieren"), ("🍞", "Brood & Beleg"),
                 ("🥩", "Vlees, Kip & Vis"), ("🥤", "Drinken"), ("🥫", "Voorraad & Conserven"),
                 ("🌿", "Kruiden & Specerijen"), ("🥔", "Snacks & Snoep"), ("🧼", "Huishouden & Schoonmaak"),
                 ("👶", "Drogisterij & Baby"), ("🍟", "Diepvries")
             ]
             
+            # Raster van 3 kolommen voor de hoofdcategorieën
+            cols = st.columns(3)
             for i, (icoon, naam) in enumerate(hoofd_cats):
-                col_target = [c1, c2, c3][i % 3]
+                col_target = cols[i % 3]
                 with col_target:
+                    st.markdown(f"""
+                        <style>
+                        div[data-testid="column"] button {{
+                            width: 100%;
+                            min-height: 90px;
+                            border-radius: 12px;
+                        }}
+                        </style>
+                    """, unsafe_allow_html=True)
                     if st.button(f"{icoon}\n\n{naam}", key=f"hoofd_cat_{i}", use_container_width=True):
                         st.session_state["actieve_categorie"] = naam
                         st.rerun()
@@ -552,22 +558,55 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             with col_titel_cat:
                 st.markdown(f"#### {actieve_cat}")
             
-            items = supermarkt_assortiment.get(actieve_cat, [])
-            
-            # We tonen nu per item een net kaartje met de prijzen erbij en een knop om toe te voegen
-            for i, (icoon, subitem, prijzen_info) in enumerate(items):
-                with st.container():
-                    col_info, col_knop = st.columns([3, 1])
-                    with col_info:
+            if actieve_cat == "Eerder Gekozen & Vaak Gebruikt":
+                historie = st.session_state["gezin_data"].get("boodschappen_historie", {})
+                # Sorteer op hoe vaak ze gekozen zijn (hoogste aantal eerst)
+                gesorteerde_historie = sorted(historie.items(), key=lambda x: x[1], reverse=True)
+                
+                if not gesorteerde_historie:
+                    st.info("Nog geen eerdere items opgeslagen! Voeg wat toe via categorieën of handmatig, dan onthoudt Boris ze hier.")
+                else:
+                    cols = st.columns(3)
+                    for i, (item_naam, count) in enumerate(gesorteerde_historie):
+                        col_target = cols[i % 3]
+                        with col_target:
+                            st.markdown(f"""
+                                <div style="background-color: #f9fbf9; border: 1px solid #e0e8e0; border-radius: 10px; padding: 10px; margin-bottom: 10px; min-height: 105px; display: flex; flex-direction: column; justify-content: space-between;">
+                                    <div>
+                                        <div style="font-size: 1rem; font-weight: bold; color: #1b5e20;">⭐ {item_naam}</div>
+                                        <div style="font-size: 0.72rem; color: #555; margin-top: 4px;">Al {count}x gekozen</div>
+                                    </div>
+                            """, unsafe_allow_html=True)
+                            
+                            if st.button("➕ Zet op lijst", key=f"hist_btn_{i}", use_container_width=True):
+                                voeg_boodschap_toe(item_naam)
+                                st.success(f"'{item_naam}' toegevoegd!")
+                                st.rerun()
+                                
+                            st.markdown("</div>", unsafe_allow_html=True)
+            else:
+                items = supermarkt_assortiment.get(actieve_cat, [])
+                
+                # Raster van 3 kolommen voor de sub-items/producten met prijzen
+                cols = st.columns(3)
+                for i, (icoon, subitem, prijzen_info) in enumerate(items):
+                    col_target = cols[i % 3]
+                    with col_target:
                         display_icoon = icoon if len(icoon) <= 2 else "🛒"
-                        st.markdown(f"**{display_icoon} {subitem}**")
-                        st.markdown(f"<p style='font-size: 0.8rem; color: #555; margin-top: -10px;'>{prijzen_info}</p>", unsafe_allow_html=True)
-                    with col_knop:
+                        st.markdown(f"""
+                            <div style="background-color: #f9fbf9; border: 1px solid #e0e8e0; border-radius: 10px; padding: 10px; margin-bottom: 10px; min-height: 125px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 1.1rem; font-weight: bold; color: #1b5e20;">{display_icoon} {subitem}</div>
+                                    <div style="font-size: 0.72rem; color: #555; margin-top: 4px; line-height: 1.2;">{prijzen_info}</div>
+                                </div>
+                        """, unsafe_allow_html=True)
+                        
                         if st.button("➕ Zet op lijst", key=f"sub_btn_{actieve_cat}_{i}", use_container_width=True):
                             voeg_boodschap_toe(subitem)
-                            st.success(f"Toegevoegd!")
+                            st.success(f"'{subitem}' toegevoegd!")
                             st.rerun()
-                    st.markdown("<hr style='margin: 5px 0px; border-color: #eee;'>", unsafe_allow_html=True)
+                            
+                        st.markdown("</div>", unsafe_allow_html=True)
 
 elif st.session_state["huidige_pagina"] == "Chat":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
