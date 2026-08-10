@@ -9,7 +9,7 @@ from PIL import Image
 from google import genai
 import streamlit as st
 
-# --- 1. PAGINA CONFIGURATIE (Altijd bovenaan) ---
+# --- 1. PAGINA CONFIGURATIE (Moet bovenaan) ---
 st.set_page_config(
     page_title="Zwijnenberg Home Assist",
     page_icon="🐷",
@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# --- 2. BROWSER HISTORY & ROUTING ---
+# --- 2. ROUTING & STATE ---
 query_pagina = st.query_params.get("pagina", "Home")
 
 if (
@@ -33,7 +33,7 @@ def ga_naar(pagina):
     st.rerun()
 
 
-# --- 3. VEILIGHEIDSCHECK API KEY ---
+# --- 3. API KEY CHECK ---
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
     client = genai.Client(api_key=api_key)
@@ -54,19 +54,17 @@ def parse_json_veilig(tekst):
         return None
 
 
-# --- 4. VEILIGE EN COMPACTE MOBIELE CSS ---
+# --- 4. STYLING (MOBIEL COMPACT & WEERGAVE-FIX) ---
 st.markdown(
     """
     <style>
     [data-testid="collapsedControl"] { display: none; }
 
-    /* Container veilig uitlijnen zonder inklappen */
     .block-container {
         padding: 0.8rem 0.5rem !important;
         max-width: 100% !important;
     }
     
-    /* Naast elkaar plaatsen van 2 kolommen op mobiel */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -81,7 +79,6 @@ st.markdown(
         width: 50% !important;
     }
 
-    /* Vaste compacte tegels voor de knoppen */
     .stButton > button {
         width: 100% !important;
         min-height: 65px !important;
@@ -105,7 +102,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- DATA BEHEER ---
+# --- 5. DATA BEHEER ---
 DATA_BESTAND = "gezin_data.json"
 
 
@@ -114,16 +111,13 @@ def laad_data():
         try:
             with open(DATA_BESTAND, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if "boodschappen_historie" not in data:
-                    data["boodschappen_historie"] = {}
-                if "agenda" not in data:
-                    data["agenda"] = []
-                if "boodschappen" not in data:
-                    data["boodschappen"] = []
-                if "weekmenu" not in data:
-                    data["weekmenu"] = {}
-                if "dagschema" not in data:
-                    data["dagschema"] = [
+                data.setdefault("boodschappen_historie", {})
+                data.setdefault("agenda", [])
+                data.setdefault("boodschappen", [])
+                data.setdefault("weekmenu", {})
+                data.setdefault(
+                    "dagschema",
+                    [
                         {
                             "taak": "🦷 Tanden poetsen",
                             "tijd": "Ochtend",
@@ -149,11 +143,12 @@ def laad_data():
                             "tijd": "Avond",
                             "klaar": False,
                         },
-                    ]
-                if "gezondheid" not in data:
-                    data["gezondheid"] = []
-                if "huishoud" not in data:
-                    data["huishoud"] = [
+                    ],
+                )
+                data.setdefault("gezondheid", [])
+                data.setdefault(
+                    "huishoud",
+                    [
                         {
                             "taak": "🗑️ Grijze container aan straat",
                             "dag": "Maandag",
@@ -174,7 +169,8 @@ def laad_data():
                             "dag": "Zondag",
                             "status": False,
                         },
-                    ]
+                    ],
+                )
                 return data
         except Exception:
             pass
@@ -236,8 +232,24 @@ if "gezin_data" not in st.session_state:
 vandaag = datetime.date.today()
 huidige_pagina = st.session_state.get("huidige_pagina", "Home")
 
+GEZIN_CONTEXT = (
+    "Je bent Boris, de virtuele assistent van gezin Zwijnenberg: "
+    "Chiel, Angelica, Tygo (3 jaar) en Duén (1 jaar) uit Luttenberg. "
+    "Spreek vrolijk en eindig vaak met 'Oink!'."
+)
+
+
+def voeg_boodschap_toe(item):
+    item_schoon = item.strip().capitalize()
+    if not item_schoon:
+        return
+    if item_schoon not in st.session_state["gezin_data"]["boodschappen"]:
+        st.session_state["gezin_data"]["boodschappen"].append(item_schoon)
+    sla_data_op(st.session_state["gezin_data"])
+
+
 # ==========================================
-# ROUTING & PAGINA LOGICA
+# HOOFDSCHERM & SUBPAGINA ROUTING
 # ==========================================
 
 if huidige_pagina == "Home":
@@ -248,66 +260,141 @@ if huidige_pagina == "Home":
 
     r1c1, r1c2 = st.columns(2)
     with r1c1:
-        if st.button("💬\nChat Boris", use_container_width=True):
+        if st.button("💬\nChat Boris", key="btn_chat"):
             ga_naar("Chat")
     with r1c2:
-        if st.button(
-            f"📅\nAgenda ({aantal_afspraken})", use_container_width=True
-        ):
+        if st.button(f"📅\nAgenda ({aantal_afspraken})", key="btn_agenda"):
             ga_naar("Agenda")
 
     r2c1, r2c2 = st.columns(2)
     with r2c1:
         if st.button(
-            f"🛒\nLijstje ({aantal_boodschappen})", use_container_width=True
+            f"🛒\nLijstje ({aantal_boodschappen})", key="btn_boodschappen"
         ):
             ga_naar("Boodschappenlijst")
     with r2c2:
-        if st.button("🍽️\nWeekmenu", use_container_width=True):
+        if st.button("🍽️\nWeekmenu", key="btn_weekmenu"):
             ga_naar("Weekmenu")
 
     r3c1, r3c2 = st.columns(2)
     with r3c1:
-        if st.button("🎯\nDagschema", use_container_width=True):
+        if st.button("🎯\nDagschema", key="btn_dagschema"):
             ga_naar("Dagschema")
     with r3c2:
-        if st.button("🌳\nUitjes", use_container_width=True):
+        if st.button("🌳\nUitjes", key="btn_uitjes"):
             ga_naar("Activiteiten")
 
     r4c1, r4c2 = st.columns(2)
     with r4c1:
-        if st.button("💊\nGezondheid", use_container_width=True):
+        if st.button("💊\nGezondheid", key="btn_gezondheid"):
             ga_naar("Gezondheid")
     with r4c2:
-        if st.button("🧹\nHuishoud", use_container_width=True):
+        if st.button("🧹\nHuishoud", key="btn_huishoud"):
             ga_naar("Huishoud")
 
     r5c1, r5c2 = st.columns(2)
     with r5c1:
-        if st.button("🔍\nRecepten", use_container_width=True):
+        if st.button("🔍\nRecepten", key="btn_recepten"):
             ga_naar("Recepten")
     with r5c2:
-        if st.button("🧾\nScanner", use_container_width=True):
+        if st.button("🧾\nScanner", key="btn_bonnen"):
             ga_naar("Kassabon Scanner")
 
     r6c1, r6c2 = st.columns(2)
     with r6c1:
-        if st.button("🎵\nMini-Disco", use_container_width=True):
+        if st.button("🎵\nMini-Disco", key="btn_kids"):
             ga_naar("Kids")
 
 elif huidige_pagina == "Chat":
-    if st.button("🔙 Terug"):
+    if st.button("🔙 Terug naar Home"):
         ga_naar("Home")
     st.markdown("### 💬 Chat met Boris")
-    st.write("Oink! Stel hier je vragen.")
+    if user_input := st.chat_input("Vraag iets aan Boris..."):
+        st.write(f"**Jij:** {user_input}")
+        with st.spinner("Boris denkt na..."):
+            res = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=f"{GEZIN_CONTEXT}\n{user_input}",
+            )
+            st.write(f"**Boris:** {res.text}")
+
+elif huidige_pagina == "Agenda":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 📅 Agenda")
+    for item in st.session_state["gezin_data"].get("agenda", []):
+        st.write(f"- **{item.get('datum')}**: {item.get('beschrijving')}")
 
 elif huidige_pagina == "Boodschappenlijst":
-    if st.button("🔙 Terug"):
+    if st.button("🔙 Terug naar Home"):
         ga_naar("Home")
     st.markdown("### 🛒 Boodschappenlijst")
-    for b in st.session_state["gezin_data"].get("boodschappen", []):
-        st.write(f"- {b}")
+    boodschappen = st.session_state["gezin_data"].get("boodschappen", [])
+    if boodschappen:
+        for b in boodschappen:
+            st.write(f"- {b}")
+    else:
+        st.info("Je boodschappenlijstje is leeg!")
+
+elif huidige_pagina == "Weekmenu":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 🍽️ Weekmenu")
+    st.write("Genereer of bekijk het menu voor deze week.")
+
+elif huidige_pagina == "Dagschema":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 🎯 Dagschema")
+    for t in st.session_state["gezin_data"].get("dagschema", []):
+        st.checkbox(t.get("taak"), value=t.get("klaar", False))
+
+elif huidige_pagina == "Activiteiten":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 🌳 Uitjes & Activiteiten")
+    st.write("Leuke uitjes voor Tygo (3) en Duén (1) rondom Luttenberg.")
+
+elif huidige_pagina == "Gezondheid":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 💊 Gezondheid")
+    for g in st.session_state["gezin_data"].get("gezondheid", []):
+        st.write(f"- {g}")
+
+elif huidige_pagina == "Huishoud":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 🧹 Huishouden")
+    for h in st.session_state["gezin_data"].get("huishoud", []):
+        st.checkbox(
+            f"[{h.get('dag')}] {h.get('taak')}", value=h.get("status", False)
+        )
+
+elif huidige_pagina == "Recepten":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 🔍 Recepten Zoeken")
+    st.write("Bedenk wat je wilt koken op basis van je koelkastinhoud.")
+
+elif huidige_pagina == "Kassabon Scanner":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 🧾 Kassabon Scanner")
+    st.file_uploader(
+        "Upload een foto van een kassabon", type=["jpg", "png", "jpeg"]
+    )
+
+elif huidige_pagina == "Kids":
+    if st.button("🔙 Terug naar Home"):
+        ga_naar("Home")
+    st.markdown("### 🎵 Mini-Disco")
+    if st.button("🎉 Dansen!"):
+        st.balloons()
+        st.markdown(
+            "<h1 style='text-align: center;'>🐷🎶 Oink Oink!</h1>",
+            unsafe_allow_html=True,
+        )
 
 else:
-    # FALLBACK: als de paginanaam niet herkend wordt, stuur direct terug naar Home
     ga_naar("Home")
