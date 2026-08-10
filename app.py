@@ -84,14 +84,14 @@ st.markdown("""
     /* Tegelknoppen Stijl: Exact Vierkant + Ronde Hoeken */
     .stButton > button {
         width: 100% !important;
-        aspect-ratio: 1 / 1 !important; /* 1. Zorgt voor een perfect vierkante knop */
-        border-radius: 16px !important;  /* 2. Mooie afgeronde hoeken */
+        aspect-ratio: 1 / 1 !important;
+        border-radius: 16px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #D2E7D6 !important;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
         transition: transform 0.12s ease, background-color 0.12s ease !important;
-        font-size: 0.75rem !important;
+        font-size: 0.72rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
@@ -106,7 +106,7 @@ st.markdown("""
 
     /* Pictogrammen (eerste regel van tegelknoppen) */
     .stButton > button p::first-line {
-        font-size: 1.6rem !important; /* Pictogram formaat */
+        font-size: 1.5rem !important;
         line-height: 1.2 !important;
     }
 
@@ -126,6 +126,15 @@ st.markdown("""
         100% { transform: translateY(0px) scale(1) rotate(0deg); }
     }
     .Boris-img-talking { animation: avatar-talking 0.3s infinite ease-in-out; }
+    
+    @keyframes avatar-dancing {
+        0% { transform: rotate(0deg) translateY(0px); }
+        25% { transform: rotate(-10deg) translateY(-8px); }
+        50% { transform: rotate(0deg) translateY(0px); }
+        75% { transform: rotate(10deg) translateY(-8px); }
+        100% { transform: rotate(0deg) translateY(0px); }
+    }
+    .Boris-img-dancing { animation: avatar-dancing 0.6s infinite ease-in-out; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -140,6 +149,23 @@ def laad_data():
                 if "boodschappen_historie" not in data: data["boodschappen_historie"] = {}
                 if "agenda" not in data: data["agenda"] = []
                 if "boodschappen" not in data: data["boodschappen"] = []
+                if "weekmenu" not in data: data["weekmenu"] = {}
+                if "dagschema" not in data: 
+                    data["dagschema"] = [
+                        {"taak": "🦷 Tanden poetsen", "tijd": "Ochtend", "klaar": False},
+                        {"taak": "👕 Aankleden", "tijd": "Ochtend", "klaar": False},
+                        {"taak": "🥣 Ontbijten", "tijd": "Ochtend", "klaar": False},
+                        {"taak": "🛏️ Pyjama aan", "tijd": "Avond", "klaar": False},
+                        {"taak": "📚 Verhaaltje lezen", "tijd": "Avond", "klaar": False}
+                    ]
+                if "gezondheid" not in data: data["gezondheid"] = []
+                if "huishoud" not in data: 
+                    data["huishoud"] = [
+                        {"taak": "🗑️ Grijze container aan straat", "dag": "Maandag", "status": False},
+                        {"taak": "♻️ Gft-bak buiten zetten", "dag": "Donderdag", "status": False},
+                        {"taak": "🧽 Vaatwasser filter schoonmaken", "dag": "Zaterdag", "status": False},
+                        {"taak": "🛏️ Bedden verschonen", "dag": "Zondag", "status": False}
+                    ]
                 return data
         except Exception:
             pass
@@ -151,7 +177,22 @@ def laad_data():
             {"datum": "2026-10-24", "beschrijving": "🎂 Verjaardag Tygo (3 jr)"}
         ],
         "boodschappen": [],
-        "boodschappen_historie": {}
+        "boodschappen_historie": {},
+        "weekmenu": {},
+        "dagschema": [
+            {"taak": "🦷 Tanden poetsen", "tijd": "Ochtend", "klaar": False},
+            {"taak": "👕 Aankleden", "tijd": "Ochtend", "klaar": False},
+            {"taak": "🥣 Ontbijten", "tijd": "Ochtend", "klaar": False},
+            {"taak": "🛏️ Pyjama aan", "tijd": "Avond", "klaar": False},
+            {"taak": "📚 Verhaaltje lezen", "tijd": "Avond", "klaar": False}
+        ],
+        "gezondheid": [],
+        "huishoud": [
+            {"taak": "🗑️ Grijze container aan straat", "dag": "Maandag", "status": False},
+            {"taak": "♻️ Gft-bak buiten zetten", "dag": "Donderdag", "status": False},
+            {"taak": "🧽 Vaatwasser filter schoonmaken", "dag": "Zaterdag", "status": False},
+            {"taak": "🛏️ Bedden verschonen", "dag": "Zondag", "status": False}
+        ]
     }
     sla_data_op(standaard_data)
     return standaard_data
@@ -274,7 +315,7 @@ if st.session_state["huidige_pagina"] == "Home":
     with col_datum:
         st.markdown(f"<p style='text-align: right; font-size: 12px; color: #aaa; margin-top: 5px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
-    # Dwing strakke 2-koloms indeling met compacter formaat af
+    # 2-koloms indeling voor alle hoofdfuncties
     r1c1, r1c2 = st.columns(2)
     with r1c1:
         if st.button("💬\nChat Boris", use_container_width=True, key="btn_chat"): ga_naar("Chat")
@@ -285,13 +326,32 @@ if st.session_state["huidige_pagina"] == "Home":
     with r2c1:
         if st.button(f"🛒\nLijstje ({aantal_boodschappen})", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
     with r2c2:
-        if st.button("🔍\nRecepten", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
+        if st.button("🍽️\nWeekmenu", use_container_width=True, key="btn_weekmenu"): ga_naar("Weekmenu")
 
     r3c1, r3c2 = st.columns(2)
     with r3c1:
-        if st.button("🧾\nScanner", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
+        if st.button("🎯\nDagschema", use_container_width=True, key="btn_dagschema"): ga_naar("Dagschema")
     with r3c2:
+        if st.button("🌳\nUitjes", use_container_width=True, key="btn_uitjes"): ga_naar("Activiteiten")
+
+    r4c1, r4c2 = st.columns(2)
+    with r4c1:
+        if st.button("💊\nGezondheid", use_container_width=True, key="btn_gezondheid"): ga_naar("Gezondheid")
+    with r4c2:
+        if st.button("🧹\nHuishoud", use_container_width=True, key="btn_huishoud"): ga_naar("Huishoud")
+
+    r5c1, r5c2 = st.columns(2)
+    with r5c1:
+        if st.button("🔍\nRecepten", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
+    with r5c2:
+        if st.button("🧾\nScanner", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
+
+    r6c1, r6c2 = st.columns(2)
+    with r6c1:
         if st.button("🎵\nMini-Disco", use_container_width=True, key="btn_kids"): ga_naar("Kids")
+    with r6c2:
+        # Lege opvulling om de rij te balanceren
+        pass
 
 
 # ==========================================
@@ -451,9 +511,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         }
     }
 
-    # DEEL 1: CATEGORIEËN
     st.markdown("#### 🗂️ Categorieën")
-    
     hoofd_cat = st.session_state["actieve_hoofd_cat"]
     sub_cat = st.session_state["actieve_sub_cat"]
 
@@ -519,7 +577,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
 
     st.markdown("---")
 
-    # DEEL 2: SNEL & SPRAAK TOEVOEGEN
     with st.form("boodschap_form", clear_on_submit=True):
         col_in, col_btn = st.columns([3, 1])
         with col_in:
@@ -592,9 +649,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
 
     st.markdown("---")
 
-    # DEEL 3: BOODSCHAPPENLIJST
     st.markdown("#### 🛒 Mijn Lijstje")
-    
     boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
     if boodschappen_lijst:
         indices_om_te_verwijderen = []
@@ -614,6 +669,228 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 st.rerun()
     else: 
         st.info("Lijstje is leeg! Tik op een categorie hierboven.")
+
+
+# ==========================================
+# SUBPAGINA: IDÉE 2 - SLIM WEEKMENU & BOODSCHAPPEN
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Weekmenu":
+    if st.button("🔙 Terug naar Home"): ga_naar("Home")
+    
+    st.markdown("### 🍽️ Slim Weekmenu & Boodschappen")
+    st.write("Genereer een volledig, kindvriendelijk weekmenu (voor peuter Tygo en baby Duén) en voeg direct alle ingrediënten toe aan de boodschappenlijst!")
+    
+    if st.button("✨ Genereer nieuw weekmenu", type="primary"):
+        with st.spinner("Boris stelt een lekker en kindvriendelijk weekmenu samen..."):
+            prompt = (
+                f"{GEZIN_CONTEXT} Genereer een gevarieerd weekmenu voor 5 dagen (Maandag t/m Vrijdag) "
+                "specifiek gericht op kindvriendelijke maaltijden (geschikt voor Tygo van 3 en Duén van 1). "
+                "Geef de output terug als een JSON object met als sleutels 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', "
+                "waarbij elke dag een object is met 'gerecht' (string) en 'ingredienten' (lijst van strings). "
+                "Voorbeeldformaat: {\"Maandag\": {\"gerecht\": \"Milde macaroni\", \"ingredienten\": [\"Macaroni\", \"Gehakt\", \"Tomatensaus\"]}}"
+            )
+            try:
+                res = client.models.generate_content(
+                    model='gemini-2.5-flash', 
+                    contents=prompt, 
+                    config={'response_mime_type': 'application/json'}
+                )
+                menu_data = parse_json_veilig(res.text)
+                if menu_data:
+                    st.session_state["gezin_data"]["weekmenu"] = menu_data
+                    sla_data_op(st.session_state["gezin_data"])
+                    st.success("Oink! Nieuw weekmenu gegenereerd!")
+                else:
+                    st.error("Kon het menu niet goed verwerken, probeer het nog eens.")
+            except Exception as e:
+                st.error(f"Fout bij genereren: {e}")
+
+    huidig_menu = st.session_state["gezin_data"].get("weekmenu", {})
+    if huidig_menu:
+        st.markdown("---")
+        for dag, info in huidig_menu.items():
+            if isinstance(info, dict):
+                gerecht = info.get("gerecht", "")
+                ingr = info.get("ingredienten", [])
+                st.markdown(f"**📅 {dag}:** {gerecht}")
+                if ingr:
+                    st.caption(f"*Benodigdheden:* {', '.join(ingr)}")
+        
+        st.markdown("")
+        if st.button("🛒 Voeg alle ingrediënten toe aan Boodschappenlijst", type="secondary"):
+            totaal_toegevoegd = 0
+            for dag, info in huidig_menu.items():
+                if isinstance(info, dict):
+                    for ing in info.get("ingredienten", []):
+                        voeg_boodschap_toe(ing)
+                        totaal_toegevoegd += 1
+            st.success(f"Oink! {totaal_toegevoegd} ingrediënten toegevoegd aan je boodschappenlijst!")
+    else:
+        st.info("Nog geen weekmenu gegenereerd. Klik op de knop hierboven!")
+
+
+# ==========================================
+# SUBPAGINA: IDÉE 3 - VISUEEL DAGSCHEMA / ROUTINETRACKER
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Dagschema":
+    if st.button("🔙 Terug naar Home"): ga_naar("Home")
+    
+    st.markdown("### 🎯 Visueel Dagschema voor Tygo")
+    st.write("Vink de ochtend- en avondroutines af! Als alles klaar is, wacht er een feestje van Boris.")
+    
+    dagschema = st.session_state["gezin_data"].get("dagschema", [])
+    
+    # Filter op ochtend / avond of toon alles overzichtelijk
+    alle_klaar = True if dagschema else False
+    
+    for idx, item in enumerate(dagschema):
+        col_chk, col_lbl = st.columns([1, 5])
+        with col_chk:
+            nieuw_status = st.checkbox("", value=item.get("klaar", False), key=f"dag_taak_{idx}")
+            if nieuw_status != item.get("klaar", False):
+                st.session_state["gezin_data"]["dagschema"][idx]["klaar"] = nieuw_status
+                sla_data_op(st.session_state["gezin_data"])
+                st.rerun()
+        with col_lbl:
+            tijd_label = f" *({item.get('tijd')})*" if item.get('tijd') else ""
+            st.markdown(f"**{item.get('taak')}**{tijd_label}")
+        if not item.get("klaar", False):
+            alle_klaar = False
+
+    if dagschema and alle_klaar:
+        st.balloons()
+        base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
+        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
+        st.markdown(f"""
+            <div style="text-align: center; background-color: #EBF5EE; padding: 15px; border-radius: 16px; border: 2px solid #2E7D32; margin-top: 15px;">
+                <img src="{IMAGE_SRC}" class="Boris-img-dancing" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 8px;"><br>
+                <h3 style="color: #1B4D2E; margin: 0;">Super gedaan Tygo! 🎉</h3>
+                <p style="color: #333; margin-top: 5px;">Alle taakjes zijn afgerond! Boris doet een overwinningsdansje voor jou! Oink oink!</p>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.markdown("#### ➕ Extra taak toevoegen")
+    with st.form("add_taak_form", clear_on_submit=True):
+        nieuwe_taak_naam = st.text_input("Naam taak (bijv. 👟 Schoenen aan)")
+        taak_tijd = st.selectbox("Moment", ["Ochtend", "Middag", "Avond"])
+        if st.form_submit_button("Taak toevoegen") and nieuwe_taak_naam:
+            st.session_state["gezin_data"]["dagschema"].append({"taak": nieuwe_taak_naam, "tijd": taak_tijd, "klaar": False})
+            sla_data_op(st.session_state["gezin_data"])
+            st.success("Taak toegevoegd!")
+            st.rerun()
+
+
+# ==========================================
+# SUBPAGINA: IDÉE 5 - ACTIVITEITEN-GENERATOR
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Activiteiten":
+    if st.button("🔙 Terug naar Home"): ga_naar("Home")
+    
+    st.markdown("### 🌳 Wat gaan we doen? (Activiteiten-Generator)")
+    st.write("Zoek je inspiratie voor een leuke middag in de omgeving van Luttenberg / Salland voor een peuter van 3 en baby van 1?")
+    
+    locatie_keuze = st.selectbox("Waar willen jullie naartoe?", ["Binnen", "Buiten / Natuur", "Maakt niet uit"])
+    tijd_keuze = st.selectbox("Hoeveel tijd hebben jullie?", ["Kort (1 uur)", "Halve dag", "Hele dag"])
+    
+    if st.button("🔍 Bedenk uitjes!", type="primary"):
+        with st.spinner("Boris zoekt de leukste uitjes in Salland..."):
+            prompt = (
+                f"{GEZIN_CONTEXT} Bedenk 3 kindvriendelijke activiteiten in of rondom Luttenberg/Salland "
+                f"die perfect passen bij een binnen/buiten voorkeur van '{locatie_keuze}' en tijdsduur '{tijd_keuze}', "
+                "specifiek geschikt voor een kind van 3 jaar én een baby van 1 jaar (bijv. speelboerderij, boswandeling met kinderwagen, etc.). "
+                "Geef een vrolijke, heldere beschrijving per activiteit."
+            )
+            res = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+            st.session_state["laatste_activiteiten"] = res.text
+
+    if "laatste_activiteiten" in st.session_state:
+        st.markdown("---")
+        st.markdown(st.session_state["laatste_activiteiten"])
+        st.components.v1.html(
+            genereer_tts_script(st.session_state["laatste_activiteiten"], "🔊 Vertel de uitjes", "Boris-main-img"),
+            height=50
+        )
+
+
+# ==========================================
+# SUBPAGINA: IDÉE 6 - ZIEKTE & MEDICIJNEN LOGBOEK
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Gezondheid":
+    if st.button("🔙 Terug naar Home"): ga_naar("Home")
+    
+    st.markdown("### 💊 Ziekte & Medicijnen Logboek")
+    st.write("Houd in de gaten wanneer wie welke medicatie of zetpil heeft gehad en log de temperatuur.")
+    
+    with st.form("gezondheid_form", clear_on_submit=True):
+        kind = st.selectbox("Wie is er ziek / krijgt medicatie?", ["Tygo", "Duén"])
+        medicijn = st.text_input("Medicijn / Omschrijving (bijv. Zetpil 240mg of Pufje)")
+        temp = st.text_input("Temperatuur in °C (optioneel, bijv. 38.5)")
+        notitie = st.text_area("Extra notities")
+        
+        if st.form_submit_button("Log registreren"):
+            nu_tijd = datetime.datetime.now().strftime("%d-%m-%Y om %H:%M")
+            item = {
+                "tijd": nu_tijd,
+                "kind": kind,
+                "medicijn": medicijn,
+                "temperatuur": temp,
+                "notitie": notitie
+            }
+            if "gezondheid" not in st.session_state["gezin_data"]:
+                st.session_state["gezin_data"]["gezondheid"] = []
+            st.session_state["gezin_data"]["gezondheid"].insert(0, item)
+            sla_data_op(st.session_state["gezin_data"])
+            st.success("Oink! Gegevens opgeslagen in het logboek.")
+            st.rerun()
+
+    st.markdown("---")
+    st.markdown("#### 📋 Logboek Historie")
+    gezondheid_logs = st.session_state["gezin_data"].get("gezondheid", [])
+    if gezondheid_logs:
+        for idx, log in enumerate(gezondheid_logs):
+            temp_str = f" | 🌡️ {log.get('temperatuur')}°C" if log.get('temperatuur') else ""
+            med_str = f" | 💊 {log.get('medicijn')}" if log.get('medicijn') else ""
+            not_str = f"<br><small>{log.get('notitie')}</small>" if log.get('notitie') else ""
+            st.markdown(f"🕒 **{log.get('tijd')}** — **{log.get('kind')}**{med_str}{temp_str}{not_str}", unsafe_allow_html=True)
+            st.markdown("---")
+    else:
+        st.info("Er zijn nog geen medische logs geregistreerd.")
+
+
+# ==========================================
+# SUBPAGINA: IDÉE 7 - HUISHOUD- & KLUSJESROOSTER
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Huishoud":
+    if st.button("🔙 Terug naar Home"): ga_naar("Home")
+    
+    st.markdown("### 🧹 Huishoud- & Klusjesrooster")
+    st.write("Overzicht van terugkerende huishoudelijke taken in huis.")
+    
+    huishoud_taken = st.session_state["gezin_data"].get("huishoud", [])
+    
+    for idx, taken_item in enumerate(huishoud_taken):
+        col_c, col_t = st.columns([1, 5])
+        with col_c:
+            status = st.checkbox("", value=taken_item.get("status", False), key=f"huishoud_chk_{idx}")
+            if status != taken_item.get("status", False):
+                st.session_state["gezin_data"]["huishoud"][idx]["status"] = status
+                sla_data_op(st.session_state["gezin_data"])
+                st.rerun()
+        with col_t:
+            dag_str = f" *({taken_item.get('dag')})*" if taken_item.get('dag') else ""
+            st.markdown(f"**{taken_item.get('taak')}**{dag_str}")
+
+    st.markdown("---")
+    st.markdown("#### ➕ Nieuwe taak toevoegen")
+    with st.form("add_huishoud_form", clear_on_submit=True):
+        nieuwe_klustaken = st.text_input("Taak omschrijving (bijv. 🪟 Ramen lappen)")
+        dag_selectie = st.selectbox("Vaste dag", ["Elke dag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"])
+        if st.form_submit_button("Taak toevoegen") and nieuwe_klustaken:
+            st.session_state["gezin_data"]["huishoud"].append({"taak": nieuwe_klustaken, "dag": dag_selectie, "status": False})
+            sla_data_op(st.session_state["gezin_data"])
+            st.success("Klusje toegevoegd!")
+            st.rerun()
 
 
 # ==========================================
@@ -730,6 +1007,42 @@ elif st.session_state["huidige_pagina"] == "Kids":
     
     st.markdown(f"""
         <div style="text-align: center; margin-bottom: 15px;">
-            <img src="{IMAGE_SRC}" id="Boris-dance-img" style="width: 120px; height: 120px; border-radius:50%; object-fit:cover; border: 4px solid #4CAF50;">
+            <img src="{IMAGE_SRC}" id="Boris-dance-img" class="Boris-img-dancing" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ff9800; object-fit: cover;">
         </div>
     """, unsafe_allow_html=True)
+    
+    if "huidige_dans_opdracht" not in st.session_state:
+        st.session_state["huidige_dans_opdracht"] = "Doe een gekke dans als een zwijntje! Oink oink!"
+
+    col_dans1, col_dans2 = st.columns(2)
+    with col_dans1:
+        if st.button("🎲 Nieuwe Dansopdracht!", use_container_width=True):
+            opdrachten = [
+                "Spring 5 keer zo hoog als een kangoeroe!",
+                "Draai drie rondjes en doe een varkenssnuitje na!",
+                "Dans als een robot die heel hard moet lachen!",
+                "Kruip als een tijger over de vloer en maak een gek geluid!",
+                "Zwaai met je armen alsof je een hele snelle molen bent!"
+            ]
+            st.session_state["huidige_dans_opdracht"] = random.choice(opdrachten)
+            st.rerun()
+
+    with col_dans2:
+        if st.button("✨ Vraag Boris een opdracht", use_container_width=True):
+            with st.spinner("Boris bedenkt een gekke actie..."):
+                try:
+                    res = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=f"{GEZIN_CONTEXT} Bedenk één hele korte, super vrolijke dans- of beweegopdracht voor Tygo (3 jaar) en baby Duén. Maximaal 1 of 2 zinnen."
+                    )
+                    st.session_state["huidige_dans_opdracht"] = res.text.strip()
+                except Exception:
+                    st.session_state["huidige_dans_opdracht"] = "Klap in je handjes en stamp op de grond! Oink!"
+            st.rerun()
+
+    st.info(f"💃 **Boris zegt:** {st.session_state['huidige_dans_opdracht']}")
+    
+    st.components.v1.html(
+        genereer_tts_script(st.session_state["huidige_dans_opdracht"], "🔊 Spreek opdracht uit!", "Boris-dance-img"),
+        height=50
+    )
