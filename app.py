@@ -7,7 +7,6 @@ import json
 import os
 import base64
 import re
-import random
 
 # --- PAGINA CONFIGURATIE ---
 st.set_page_config(
@@ -35,15 +34,6 @@ except Exception:
     st.error("🚨 Kan de API-sleutel niet vinden. Zorg voor een `.streamlit/secrets.toml` bestand met `GEMINI_API_KEY`.")
     st.stop()
 
-def get_image_base64(image_path):
-    if os.path.exists(image_path):
-        try:
-            with open(image_path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode('utf-8')
-        except Exception:
-            return None
-    return None
-
 def parse_json_veilig(tekst):
     try:
         m = re.search(r'\{.*\}', tekst, re.DOTALL)
@@ -53,7 +43,7 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (EENVOUDIGE KLEINE VIERKANTE TEGELS) ---
+# --- STYLING (STRAKKE MOBIELE 4-KOLOMS TEGELS ZONDER OVERFLOW) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -65,18 +55,18 @@ st.markdown("""
     .main, .block-container {
         max-width: 100vw !important;
         width: 100% !important;
-        padding-left: 0.25rem !important;
-        padding-right: 0.25rem !important;
-        padding-top: 0.4rem !important;
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+        padding-top: 4px !important;
         overflow-x: hidden !important;
     }
     
-    /* 4 Koloms flex layout */
+    /* 4 Koloms flex layout passend binnen het scherm */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 4px !important;
+        gap: 3px !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -89,40 +79,40 @@ st.markdown("""
         padding: 0 !important;
     }
 
-    /* VASTE KLEINE VIERKANTE APP-TEGELS */
+    /* VASTE COMPACTE VIERKANTE APP-TEGELS VOOR TELEFOON */
     .stButton > button {
         width: 100% !important;
-        height: 65px !important;
-        min-height: 65px !important;
-        max-height: 65px !important;
-        border-radius: 10px !important;
+        height: 56px !important;
+        min-height: 56px !important;
+        max-height: 56px !important;
+        border-radius: 8px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.65rem !important;
+        font-size: 0.55rem !important;
         font-weight: 600 !important;
         text-align: center !important;
         padding: 2px !important;
-        margin-bottom: 4px !important;
+        margin: 0 !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         align-items: center !important;
-        gap: 2px !important;
+        gap: 1px !important;
         overflow: hidden !important;
         white-space: nowrap !important;
-        text-overflow: ellipsis !important;
     }
 
-    .stButton > button p, .stButton > button div {
-        font-size: 0.65rem !important;
+    .stButton > button p, .stButton > button div, .stButton > button span {
+        font-size: 0.55rem !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
+        line-height: 1.1 !important;
     }
 
     .stButton > button:hover, .stButton > button:active {
@@ -131,13 +121,6 @@ st.markdown("""
         border-color: #2E7D32 !important;
         color: #0E331A !important;
     }
-
-    @keyframes avatar-talking {
-        0% { transform: translateY(0px) scale(1) rotate(0deg); }
-        50% { transform: translateY(-3px) scale(1.02) rotate(-1deg); }
-        100% { transform: translateY(0px) scale(1) rotate(0deg); }
-    }
-    .Boris-img-talking { animation: avatar-talking 0.3s infinite ease-in-out; }
     </style>
 """, unsafe_allow_html=True)
 
