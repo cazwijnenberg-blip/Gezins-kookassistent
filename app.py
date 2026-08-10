@@ -54,37 +54,45 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (ULTRA-COMPACTE POS-KASSA STIJL TEGELS, KLEIN & PASSEND OP MOBIEL) ---
+# --- STYLING (RESPONSIEF & PASSEND OP MOBIEL SCHERM) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
 
-    /* Voorkom horizontaal scrollen */
+    /* Voorkom dat elementen buiten het scherm vallen op mobiel */
+    * {
+        box-sizing: border-box !important;
+    }
+
     .main, .block-container {
-        max-width: 100% !important;
+        max-width: 100vw !important;
+        width: 100% !important;
         padding-left: 0.3rem !important;
         padding-right: 0.3rem !important;
-        padding-top: 0.5rem !important;
+        padding-top: 0.4rem !important;
         overflow-x: hidden !important;
     }
     
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: wrap !important;
         gap: 4px !important;
         width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         min-width: 0px !important;
         flex: 1 1 0px !important;
+        max-width: 100% !important;
     }
 
-    /* Compacte POS / Kassa Software Stijl Tegels (Vaste kleine hoogte i.p.v. grote vierkanten) */
+    /* Compacte POS / Kassa Software Stijl Tegels (Netjes ingepakt binnen het scherm) */
     .stButton > button {
         width: 100% !important;
-        height: 42px !important;
+        height: 40px !important;
         border-radius: 6px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
@@ -94,19 +102,19 @@ st.markdown("""
         font-size: 0.7rem !important;
         font-weight: 600 !important;
         text-align: left !important;
-        padding: 0px 6px !important;
+        padding: 0px 4px !important;
         margin-bottom: 3px !important;
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-start !important;
         align-items: center !important;
-        gap: 6px !important;
+        gap: 4px !important;
         overflow: hidden !important;
         white-space: nowrap !important;
         text-overflow: ellipsis !important;
     }
 
-    /* Zorg dat emoji/pictogram netjes compact is */
+    /* Zorg dat emoji/tekst netjes compact blijft en niet overlapt */
     .stButton > button p, .stButton > button div {
         font-size: 0.75rem !important;
         margin: 0 !important;
@@ -321,7 +329,6 @@ if st.session_state["huidige_pagina"] == "Home":
     with col_datum:
         st.markdown(f"<p style='text-align: right; font-size: 11px; color: #aaa; margin-top: 5px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
-    # 3-koloms compact grid voor het dashboard
     r1c1, r1c2, r1c3 = st.columns(3)
     with r1c1:
         if st.button("💬 Chat", use_container_width=True, key="btn_chat"): ga_naar("Chat")
@@ -450,7 +457,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (ULTRA-COMPACT POS-GRID: 4 KOLOMMEN)
+# SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
@@ -528,7 +535,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         sub_dict = supermarkt_database.get(hoofd_cat, {})
         
         if sub_cat is None:
-            # 4 kolommen raster voor subcategorieën
             cols = st.columns(4)
             sub_namen = list(sub_dict.keys())
             for i, s_naam in enumerate(sub_namen):
@@ -546,7 +552,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             st.markdown(f"**🏷️ {sub_cat}**")
             producten = sub_dict.get(sub_cat, [])
             
-            # 4 kolommen raster voor producten
             cols = st.columns(4)
             for i, (icoon, prod_naam) in enumerate(producten):
                 col_target = cols[i % 4]
@@ -569,7 +574,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             "Non-Food": "🧻"
         }
         
-        # 4 kolommen raster voor hoofdcategorieën (Kassasoftware stijl)
         cols = st.columns(4)
         for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
             col_target = cols[i % 4]
