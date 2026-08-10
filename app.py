@@ -1,11 +1,9 @@
 import streamlit as st
 from google import genai
-from PIL import Image
 import datetime
 import calendar
 import json
 import os
-import base64
 import re
 
 # --- PAGINA CONFIGURATIE ---
@@ -50,14 +48,16 @@ st.markdown("""
 
     * {
         box-sizing: border-box !important;
+        -webkit-box-sizing: border-box !important;
     }
 
-    .main, .block-container {
+    body, html, .main, .block-container {
         max-width: 100vw !important;
         width: 100% !important;
-        padding-left: 4px !important;
-        padding-right: 4px !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
         padding-top: 4px !important;
+        padding-bottom: 20px !important;
         overflow-x: hidden !important;
     }
     
@@ -66,7 +66,7 @@ st.markdown("""
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 3px !important;
+        gap: 2px !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -77,24 +77,25 @@ st.markdown("""
         min-width: 0px !important;
         max-width: 25% !important;
         padding: 0 !important;
+        margin: 0 !important;
     }
 
     /* VASTE COMPACTE VIERKANTE APP-TEGELS VOOR TELEFOON */
     .stButton > button {
         width: 100% !important;
-        height: 56px !important;
-        min-height: 56px !important;
-        max-height: 56px !important;
-        border-radius: 8px !important;
+        height: 52px !important;
+        min-height: 52px !important;
+        max-height: 52px !important;
+        border-radius: 6px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.55rem !important;
+        font-size: 0.5rem !important;
         font-weight: 600 !important;
         text-align: center !important;
-        padding: 2px !important;
+        padding: 1px !important;
         margin: 0 !important;
         display: flex !important;
         flex-direction: column !important;
@@ -106,7 +107,7 @@ st.markdown("""
     }
 
     .stButton > button p, .stButton > button div, .stButton > button span {
-        font-size: 0.55rem !important;
+        font-size: 0.5rem !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
@@ -278,11 +279,8 @@ if st.session_state["huidige_pagina"] == "Home":
         ("🛒", f"Lijst ({aantal_boodschappen})", "Boodschappenlijst"),
         ("🍽️", "Menu", "Weekmenu"),
         ("🎯", "Schema", "Dagschema"),
-        ("🌳", "Uitjes", "Activiteiten"),
-        ("💊", "Zorg", "Gezondheid"),
         ("🧹", "Klusjes", "Huishoud"),
-        ("🔍", "Recept", "Recepten"),
-        ("🧾", "Bon", "Kassabon Scanner"),
+        ("💊", "Zorg", "Gezondheid"),
         ("🎵", "Disco", "Kids")
     ]
 
@@ -294,6 +292,48 @@ if st.session_state["huidige_pagina"] == "Home":
             with cols[j]:
                 if st.button(f"{icoon}\n{tekst}", use_container_width=True, key=f"dash_btn_{pagina}"):
                     ga_naar(pagina)
+
+# ==========================================
+# SUBPAGINA: CHAT (MET BORIS)
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Chat":
+    if st.button("🔙 Terug"): ga_naar("Home")
+    st.markdown("### 💬 Chat met Boris")
+    
+    if "chat_historie" not in st.session_state:
+        st.session_state["chat_historie"] = [
+            {"rol": "assistant", "tekst": "Oink! Hoi! Ik ben Boris, jullie huiszwijn. Waar kan ik jullie vandaag mee helpen?"}
+        ]
+        
+    for bericht in st.session_state["chat_historie"]:
+        with st.chat_message(bericht["rol"]):
+            st.write(bericht["tekst"])
+            
+    gebruiker_input = st.chat_input("Typ je bericht aan Boris...")
+    if gebruiker_input:
+        st.session_state["chat_historie"].append({"rol": "user", "tekst": gebruiker_input})
+        with st.chat_message("user"):
+            st.write(gebruiker_input)
+            
+        with st.chat_message("assistant"):
+            with st.spinner("Boris denkt na... oink..."):
+                try:
+                    context_data = f"{GEZIN_CONTEXT}\nActuele gezin data:\nAgenda: {st.session_state['gezin_data'].get('agenda', [])}\nBoodschappen: {st.session_state['gezin_data'].get('boodschappen', [])}"
+                    chat_gesprek = [context_data]
+                    for b in st.session_state["chat_historie"]:
+                        chat_gesprek.append(f"{b['rol']}: {b['tekst']}")
+                    
+                    res = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=chat_gesprek
+                    )
+                    antwoord = res.text
+                    st.write(antwoord)
+                    st.session_state["chat_historie"].append({"rol": "assistant", "tekst": antwoord})
+                except Exception as e:
+                    fout_melding = f"Oink... er ging iets mis: {e}"
+                    st.write(fout_melding)
+                    st.session_state["chat_historie"].append({"rol": "assistant", "tekst": fout_melding})
 
 # ==========================================
 # SUBPAGINA: AGENDA
@@ -392,14 +432,6 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 # SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
-    if "spraak_input" in st.query_params:
-        gesproken_tekst = st.query_params.get("spraak_input")
-        if gesproken_tekst:
-            verwerk_meerdere_boodschappen(gesproken_tekst)
-            st.toast(f"🎙️ Ingesproken: '{gesproken_tekst}' toegevoegd!")
-        del st.query_params["spraak_input"]
-        st.rerun()
-
     if st.button("🔙 Terug"): ga_naar("Home")
     
     if "actieve_hoofd_cat" not in st.session_state: st.session_state["actieve_hoofd_cat"] = None
@@ -629,9 +661,57 @@ elif st.session_state["huidige_pagina"] == "Dagschema":
             sla_data_op(st.session_state["gezin_data"])
 
 # ==========================================
+# SUBPAGINA: HUISHOUD & KLUSJES
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Huishoud":
+    if st.button("🔙 Terug"): ga_naar("Home")
+    st.markdown("### 🧹 Huishoudelijke Taken")
+    
+    huishoud_lijst = st.session_state["gezin_data"].get("huishoud", [])
+    for idx, item in enumerate(huishoud_lijst):
+        status = st.checkbox(f"{item.get('taak')} (*{item.get('dag')}*)", value=item.get("status", False), key=f"huis_{idx}")
+        if status != item.get("status", False):
+            huishoud_lijst[idx]["status"] = status
+            sla_data_op(st.session_state["gezin_data"])
+
+# ==========================================
+# SUBPAGINA: GEZONDHEID & ZORG
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Gezondheid":
+    if st.button("🔙 Terug"): ga_naar("Home")
+    st.markdown("### 💊 Gezondheid & Zorg (Tygo & Duén)")
+    
+    with st.form("gezondheid_form", clear_on_submit=True):
+        notitie = st.text_input("Medische notitie / Afspraak (bijv. Tandarts, vaccinatie)")
+        datum_zorg = st.date_input("Datum", vandaag)
+        if st.form_submit_button("Opslaan") and notitie:
+            if "gezondheid" not in st.session_state["gezin_data"]:
+                st.session_state["gezin_data"]["gezondheid"] = []
+            st.session_state["gezin_data"]["gezondheid"].append({"datum": str(datum_zorg), "notitie": notitie})
+            sla_data_op(st.session_state["gezin_data"])
+            st.success("Oink! Opgeslagen!")
+            st.rerun()
+            
+    st.markdown("---")
+    gezondheid_lijst = st.session_state["gezin_data"].get("gezondheid", [])
+    if gezondheid_lijst:
+        for idx, item in enumerate(gezondheid_lijst):
+            st.markdown(f"🩺 **{item.get('datum')}**: {item.get('notitie')}")
+    else:
+        st.info("Geen medische notities aanwezig.")
+
+# ==========================================
+# SUBPAGINA: KIDS / DISCO
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Kids":
+    if st.button("🔙 Terug"): ga_naar("Home")
+    st.markdown("### 🎵 Kids & Disco")
+    st.info("Tijd voor feest! Zet hier straks favoriete kinderliedjes aan.")
+
+# ==========================================
 # OVERIGE PAGINA'S (FALLBACK)
 # ==========================================
 else:
     if st.button("🔙 Terug"): ga_naar("Home")
     st.markdown(f"### 🚧 {st.session_state['huidige_pagina']}")
-    st.info("Deze pagina is in aanbouw of wordt zo geladen.")
+    st.info("Deze pagina wordt geladen.")
