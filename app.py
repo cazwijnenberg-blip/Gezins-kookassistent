@@ -1,4 +1,23 @@
-# --- STYLING (EXTREEM COMPACT VOOR MOBIEL) ---
+import base64
+import calendar
+import datetime
+import json
+import os
+import random
+import re
+from PIL import Image
+from google import genai
+import streamlit as st
+
+# 1. Dit MOET het allereerste Streamlit-commando in het bestand zijn:
+st.set_page_config(
+    page_title="Zwijnenberg Home Assist",
+    page_icon="🐷",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+# 2. Pas daarna de CSS-styling toepassen:
 st.markdown(
     """
     <style>
