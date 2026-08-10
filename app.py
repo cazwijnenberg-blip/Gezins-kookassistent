@@ -54,16 +54,17 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (COMPACTE POS-STIJL TEGELS & GEEN HORIZONTAAL SCROLLEN) ---
+# --- STYLING (ULTRA-COMPACTE POS-KASSA STIJL TEGELS, KLEIN & PASSEND OP MOBIEL) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
 
-    /* Voorkom horizontaal scrollen van de hele pagina op mobiel */
+    /* Voorkom horizontaal scrollen */
     .main, .block-container {
         max-width: 100% !important;
-        padding-left: 0.4rem !important;
-        padding-right: 0.4rem !important;
+        padding-left: 0.3rem !important;
+        padding-right: 0.3rem !important;
+        padding-top: 0.5rem !important;
         overflow-x: hidden !important;
     }
     
@@ -71,7 +72,7 @@ st.markdown("""
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 5px !important;
+        gap: 4px !important;
         width: 100% !important;
     }
     
@@ -80,37 +81,43 @@ st.markdown("""
         flex: 1 1 0px !important;
     }
 
-    /* Ultra-compacte POS / Kassa Software Stijl Tegels */
+    /* Compacte POS / Kassa Software Stijl Tegels (Vaste kleine hoogte i.p.v. grote vierkanten) */
     .stButton > button {
         width: 100% !important;
-        aspect-ratio: 1 / 1 !important;
-        border-radius: 10px !important;
+        height: 42px !important;
+        border-radius: 6px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.62rem !important;
-        font-weight: 700 !important;
-        text-align: center !important;
-        white-space: pre-wrap !important;
-        padding: 2px !important;
-        margin-bottom: 2px !important;
-        line-height: 1.1 !important;
+        font-size: 0.7rem !important;
+        font-weight: 600 !important;
+        text-align: left !important;
+        padding: 0px 6px !important;
+        margin-bottom: 3px !important;
         display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
+        flex-direction: row !important;
+        justify-content: flex-start !important;
         align-items: center !important;
+        gap: 6px !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
     }
 
-    /* Pictogrammen op de eerste regel */
-    .stButton > button p::first-line {
-        font-size: 1.15rem !important;
-        line-height: 1.1 !important;
+    /* Zorg dat emoji/pictogram netjes compact is */
+    .stButton > button p, .stButton > button div {
+        font-size: 0.75rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     .stButton > button:hover, .stButton > button:active {
-        transform: scale(0.96) !important;
+        transform: scale(0.98) !important;
         background-color: #D6EFE0 !important;
         border-color: #2E7D32 !important;
         color: #0E331A !important;
@@ -292,8 +299,8 @@ def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-mai
     }}
     {auto_code}
     </script>
-    <div style="text-align: center; margin-top: 5px;">
-        <button onclick="spreekTekst('{schone_tekst}')" style="background-color: #1e1e1e; border: 1px solid #333; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; color: #4CAF50; width: 100%; padding: 6px;">
+    <div style="text-align: center; margin-top: 3px;">
+        <button onclick="spreekTekst('{schone_tekst}')" style="background-color: #1e1e1e; border: 1px solid #333; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; color: #4CAF50; width: 100%; padding: 4px;">
             {knop_tekst}
         </button>
     </div>
@@ -317,33 +324,33 @@ if st.session_state["huidige_pagina"] == "Home":
     # 3-koloms compact grid voor het dashboard
     r1c1, r1c2, r1c3 = st.columns(3)
     with r1c1:
-        if st.button("💬\nChat", use_container_width=True, key="btn_chat"): ga_naar("Chat")
+        if st.button("💬 Chat", use_container_width=True, key="btn_chat"): ga_naar("Chat")
     with r1c2:
-        if st.button(f"📅\nAgenda ({aantal_afspraken_komend})", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
+        if st.button(f"📅 Agenda ({aantal_afspraken_komend})", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
     with r1c3:
-        if st.button(f"🛒\nLijst ({aantal_boodschappen})", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
+        if st.button(f"🛒 Lijst ({aantal_boodschappen})", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
 
     r2c1, r2c2, r2c3 = st.columns(3)
     with r2c1:
-        if st.button("🍽️\nMenu", use_container_width=True, key="btn_weekmenu"): ga_naar("Weekmenu")
+        if st.button("🍽️ Menu", use_container_width=True, key="btn_weekmenu"): ga_naar("Weekmenu")
     with r2c2:
-        if st.button("🎯\nSchema", use_container_width=True, key="btn_dagschema"): ga_naar("Dagschema")
+        if st.button("🎯 Schema", use_container_width=True, key="btn_dagschema"): ga_naar("Dagschema")
     with r2c3:
-        if st.button("🌳\nUitjes", use_container_width=True, key="btn_uitjes"): ga_naar("Activiteiten")
+        if st.button("🌳 Uitjes", use_container_width=True, key="btn_uitjes"): ga_naar("Activiteiten")
 
     r3c1, r3c2, r3c3 = st.columns(3)
     with r3c1:
-        if st.button("💊\nZorg", use_container_width=True, key="btn_gezondheid"): ga_naar("Gezondheid")
+        if st.button("💊 Zorg", use_container_width=True, key="btn_gezondheid"): ga_naar("Gezondheid")
     with r3c2:
-        if st.button("🧹\nKlusjes", use_container_width=True, key="btn_huishoud"): ga_naar("Huishoud")
+        if st.button("🧹 Klusjes", use_container_width=True, key="btn_huishoud"): ga_naar("Huishoud")
     with r3c3:
-        if st.button("🔍\nRecept", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
+        if st.button("🔍 Recept", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
 
     r4c1, r4c2, r4c3 = st.columns(3)
     with r4c1:
-        if st.button("🧾\nBon", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
+        if st.button("🧾 Bon", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
     with r4c2:
-        if st.button("🎵\nDisco", use_container_width=True, key="btn_kids"): ga_naar("Kids")
+        if st.button("🎵 Disco", use_container_width=True, key="btn_kids"): ga_naar("Kids")
     with r4c3:
         pass
 
@@ -399,14 +406,14 @@ elif st.session_state["huidige_pagina"] == "Agenda":
     
     html_cal = """
     <style>
-    .cal-wrapper { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; padding-bottom: 15px; }
-    .cal-header { text-align: center; font-weight: bold; font-size: 0.75rem; padding: 3px 0; color: #aaa; }
-    .cal-day { background-color: #1a1a1a; border: 1px solid #333; border-radius: 4px; padding: 3px; text-align: center; min-height: 38px; display: flex; flex-direction: column; justify-content: start; align-items: center;}
-    .cal-day span.date { font-weight: bold; font-size: 0.8rem; color: #ffffff !important; }
+    .cal-wrapper { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding-bottom: 10px; }
+    .cal-header { text-align: center; font-weight: bold; font-size: 0.7rem; padding: 2px 0; color: #aaa; }
+    .cal-day { background-color: #1a1a1a; border: 1px solid #333; border-radius: 4px; padding: 2px; text-align: center; min-height: 32px; display: flex; flex-direction: column; justify-content: start; align-items: center;}
+    .cal-day span.date { font-weight: bold; font-size: 0.75rem; color: #ffffff !important; }
     .cal-day.vandaag { border: 2px solid #ff9800; background-color: #2c221e; }
     .cal-day.afspraak { background-color: #1c2732; border-color: #2196F3; }
     .cal-leeg { background-color: transparent; }
-    .cal-badge { font-size: 0.6rem; color: #90caf9; font-weight: bold; margin-top: 1px; }
+    .cal-badge { font-size: 0.55rem; color: #90caf9; font-weight: bold; margin-top: 1px; }
     </style>
     <div class="cal-wrapper">
     """
@@ -443,7 +450,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (ULTRA-COMPACT POS-GRID: 5 KOLOMMEN)
+# SUBPAGINA: BOODSCHAPPENLIJST (ULTRA-COMPACT POS-GRID: 4 KOLOMMEN)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
@@ -463,13 +470,13 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         "AGF": {
             "Vers fruit": [("🍎", "Appels"), ("🍌", "Bananen"), ("🍓", "Bessen"), ("🍊", "Citrus")],
             "Groenten": [("🥬", "Sla"), ("🍅", "Tomaten"), ("🧅", "Uien"), ("🥕", "Wortels")],
-            "Aardappel": [("🥔", "Aardappels"), ("🥔", "Krieltjes")],
+            "Aardappel": [("🥔", "Aardappel"), ("🥔", "Krieltjes")],
             "Salades": [("🥗", "Salade"), ("🥕", "Snacks")]
         },
         "Zuivel": {
             "Melk": [("🥛", "Melk"), ("🥛", "Karnemelk"), ("🥛", "Haver")],
             "Yoghurt": [("🥣", "Yoghurt"), ("🥣", "Kwark")],
-            "Kaas": [("🧀", "Jonge kaas"), ("🧀", "Oude kaas"), ("🧀", "Smeer")],
+            "Kaas": [("🧀", "Jong kaas"), ("🧀", "Oud kaas"), ("🧀", "Smeerkaas")],
             "Eieren/Boter": [("🥚", "Eieren"), ("🧈", "Boter")]
         },
         "Vlees/Vis": {
@@ -521,14 +528,14 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         sub_dict = supermarkt_database.get(hoofd_cat, {})
         
         if sub_cat is None:
-            # 5 kolommen raster voor ultieme compacte POS uitstraling
-            cols = st.columns(5)
+            # 4 kolommen raster voor subcategorieën
+            cols = st.columns(4)
             sub_namen = list(sub_dict.keys())
             for i, s_naam in enumerate(sub_namen):
-                col_target = cols[i % 5]
+                col_target = cols[i % 4]
                 with col_target:
                     ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
-                    if st.button(f"{ic}\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
+                    if st.button(f"{ic} {s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
                         st.session_state["actieve_sub_cat"] = s_naam
                         st.rerun()
         else:
@@ -539,12 +546,12 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             st.markdown(f"**🏷️ {sub_cat}**")
             producten = sub_dict.get(sub_cat, [])
             
-            # 5 kolommen raster voor producten
-            cols = st.columns(5)
+            # 4 kolommen raster voor producten
+            cols = st.columns(4)
             for i, (icoon, prod_naam) in enumerate(producten):
-                col_target = cols[i % 5]
+                col_target = cols[i % 4]
                 with col_target:
-                    if st.button(f"{icoon}\n{prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
+                    if st.button(f"{icoon} {prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
                         voeg_boodschap_toe(prod_naam)
                         st.toast(f"✅ '{prod_naam}' toegevoegd!")
                         st.rerun()
@@ -562,12 +569,12 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             "Non-Food": "🧻"
         }
         
-        # 5 kolommen raster voor hoofdcategorieën (Kassasoftware stijl)
-        cols = st.columns(5)
+        # 4 kolommen raster voor hoofdcategorieën (Kassasoftware stijl)
+        cols = st.columns(4)
         for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
-            col_target = cols[i % 5]
+            col_target = cols[i % 4]
             with col_target:
-                if st.button(f"{icoon}\n{cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
+                if st.button(f"{icoon} {cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
                     st.session_state["actieve_hoofd_cat"] = cat_naam
                     st.session_state["actieve_sub_cat"] = None
                     st.rerun()
@@ -579,7 +586,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         with col_in:
             nieuw_item = st.text_input("Snel toevoegen:", placeholder="Typ bijv. melk...")
         with col_btn:
-            st.markdown("<div style='margin-top: 26px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-top: 24px;'></div>", unsafe_allow_html=True)
             submit = st.form_submit_button("➕")
             if submit and nieuw_item:
                 verwerk_meerdere_boodschappen(nieuw_item)
@@ -591,17 +598,17 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 background-color: #1B4D2E;
                 color: white;
                 border: 1px solid #2E7D32;
-                border-radius: 8px;
-                padding: 6px;
-                font-size: 12px;
+                border-radius: 6px;
+                padding: 5px;
+                font-size: 11px;
                 font-weight: bold;
                 cursor: pointer;
                 width: 100%;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                box-shadow: 0 1px 2px rgba(0,0,0,0.15);
             ">
                 🎙️ Spreek hele lijst in
             </button>
-            <p id="statusMsg" style="color: #aaa; font-size: 10px; margin-top: 3px; margin-bottom: 0;"></p>
+            <p id="statusMsg" style="color: #aaa; font-size: 9px; margin-top: 2px; margin-bottom: 0;"></p>
         </div>
 
         <script>
@@ -642,7 +649,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             }
         }
         </script>
-    """, height=55)
+    """, height=45)
 
     st.markdown("---")
 
@@ -757,10 +764,10 @@ elif st.session_state["huidige_pagina"] == "Dagschema":
         base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
         IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
         st.markdown(f"""
-            <div style="text-align: center; background-color: #EBF5EE; padding: 12px; border-radius: 12px; border: 2px solid #2E7D32; margin-top: 10px;">
-                <img src="{IMAGE_SRC}" class="Boris-img-dancing" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-bottom: 6px;"><br>
-                <h3 style="color: #1B4D2E; margin: 0; font-size: 1.1rem;">Super gedaan Tygo! 🎉</h3>
-                <p style="color: #333; margin-top: 4px; font-size: 0.85rem;">Alles afgerond! Boris danst voor jou!</p>
+            <div style="text-align: center; background-color: #EBF5EE; padding: 10px; border-radius: 10px; border: 2px solid #2E7D32; margin-top: 8px;">
+                <img src="{IMAGE_SRC}" class="Boris-img-dancing" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-bottom: 4px;"><br>
+                <h3 style="color: #1B4D2E; margin: 0; font-size: 1rem;">Super gedaan Tygo! 🎉</h3>
+                <p style="color: #333; margin-top: 2px; font-size: 0.8rem;">Alles afgerond! Boris danst voor jou!</p>
             </div>
         """, unsafe_allow_html=True)
     
@@ -800,7 +807,7 @@ elif st.session_state["huidige_pagina"] == "Activiteiten":
         st.markdown(st.session_state["laatste_activiteiten"])
         st.components.v1.html(
             genereer_tts_script(st.session_state["laatste_activiteiten"], "🔊 Beluister", "Boris-main-img"),
-            height=45
+            height=40
         )
 
 
@@ -884,7 +891,7 @@ elif st.session_state["huidige_pagina"] == "Chat":
         with st.chat_message(msg["role"], avatar="🐗" if msg["role"] == "assistant" else "👤"): 
             st.write(msg["content"])
             if msg["role"] == "assistant":
-                st.components.v1.html(genereer_tts_script(msg["content"], "🔊 Beluister", f"chat_tts_{idx}"), height=40)
+                st.components.v1.html(genereer_tts_script(msg["content"], "🔊 Beluister", f"chat_tts_{idx}"), height=35)
 
     user_prompt = st.chat_input("Typ je bericht...")
     if user_prompt:
@@ -980,8 +987,8 @@ elif st.session_state["huidige_pagina"] == "Kids":
     IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
     
     st.markdown(f"""
-        <div style="text-align: center; margin-bottom: 10px;">
-            <img src="{IMAGE_SRC}" id="Boris-dance-img" class="Boris-img-dancing" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #ff9800; object-fit: cover;">
+        <div style="text-align: center; margin-bottom: 8px;">
+            <img src="{IMAGE_SRC}" id="Boris-dance-img" class="Boris-img-dancing" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid #ff9800; object-fit: cover;">
         </div>
     """, unsafe_allow_html=True)
     
@@ -1018,5 +1025,5 @@ elif st.session_state["huidige_pagina"] == "Kids":
     
     st.components.v1.html(
         genereer_tts_script(st.session_state["huidige_dans_opdracht"], "🔊 Spreek uit!", "Boris-dance-img"),
-        height=45
+        height=40
     )
