@@ -54,7 +54,7 @@ def parse_json_veilig(tekst):
         return None
 
 
-# --- STYLING (MOBIEL GEOPTIMALISEERD: NATIVE APP-LOOK) ---
+# --- STYLING (GEOPTIMALISEERD VOOR MOBIEL) ---
 st.markdown(
     """
     <style>
@@ -65,40 +65,42 @@ st.markdown(
         max-width: 100% !important;
         padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
-        padding-top: 1rem !important;
+        padding-top: 0.8rem !important;
         overflow-x: hidden !important;
     }
     
-    /* Layout voor knoppen-grid */
+    /* Strict 2-koloms layout zonder overloop */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 10px !important;
+        gap: 8px !important;
         width: 100% !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 8px !important;
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        min-width: 0px !important;
-        flex: 1 1 0px !important;
+        width: 50% !important;
+        min-width: 0 !important;
+        flex: 1 1 50% !important;
     }
 
-    /* Tegelknoppen Stijl: Vormgeving als moderne iOS/Android App Icons */
+    /* Tegelknoppen Stijl: Compacte Mobiele App Tiles */
     .stButton > button {
         width: 100% !important;
-        aspect-ratio: 1 / 1 !important;
-        border-radius: 20px !important;
+        height: 95px !important;
+        min-height: 95px !important;
+        border-radius: 16px !important;
         background: linear-gradient(145deg, #f0f7f2, #e1efe4) !important;
         color: #1B4D2E !important;
         border: 1px solid #d0e5d4 !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05) !important;
         transition: all 0.15s ease-in-out !important;
-        font-size: 0.8rem !important;
+        font-size: 0.82rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
-        padding: 6px !important;
+        padding: 6px 4px !important;
         line-height: 1.2 !important;
         display: flex !important;
         flex-direction: column !important;
@@ -106,21 +108,20 @@ st.markdown(
         align-items: center !important;
     }
 
-    /* Pictogrammen (eerste regel van de knop) vergroten */
+    /* Pictogrammen op de eerste regel */
     .stButton > button p {
         margin: 0 !important;
     }
     .stButton > button p::first-line {
-        font-size: 1.7rem !important;
-        line-height: 1.3 !important;
+        font-size: 1.5rem !important;
+        line-height: 1.2 !important;
     }
 
     .stButton > button:hover, .stButton > button:active {
-        transform: scale(0.96) !important;
+        transform: scale(0.97) !important;
         background: linear-gradient(145deg, #e1efe4, #d0e5d4) !important;
         border-color: #2E7D32 !important;
         color: #0E331A !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
     }
 
     /* Animaties voor mascotte Boris */
@@ -377,7 +378,7 @@ if st.session_state["huidige_pagina"] == "Home":
             unsafe_allow_html=True,
         )
 
-    # 2-koloms app-grid met vierkante tegelknoppen
+    # 2-koloms app-grid
     r1c1, r1c2 = st.columns(2)
     with r1c1:
         if st.button("💬\nChat Boris", use_container_width=True, key="btn_chat"):
