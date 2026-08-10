@@ -71,20 +71,21 @@ def parse_json_veilig(tekst):
 
 
 # ==========================================
-# 4. COMPACTE EN GELIJKMATIGE STYLING
+# 4. SLIMME STYLING (Tegels vs. Kleine Knoppen)
 # ==========================================
 st.markdown(
     """
     <style>
     [data-testid="collapsedControl"] { display: none; }
+    header[data-testid="stHeader"] { background-color: transparent !important; z-index: 1 !important; }
 
-    /* Ruimte bovenaan toevoegen zodat knoppen niet onder de statusbalk vallen */
+    /* Ruime bovenmarge tegen het wegvallen onder de statusbalk/notch */
     .main .block-container {
         max-width: 100% !important;
-        padding-top: 3.5rem !important;
+        padding-top: 5rem !important;
         padding-bottom: 2rem !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
         overflow-x: hidden !important;
     }
     
@@ -105,13 +106,37 @@ st.markdown(
         width: 100% !important;
     }
 
-    .stButton {
-        height: 100% !important;
-        width: 100% !important;
+    /* 1. STANDAARD KNOPPEN (Terugknoppen, Acties, Formulieren): COMPACT & KLEIN */
+    .stButton > button {
+        width: auto !important;
+        min-width: 0 !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        border-radius: 8px !important;
+        background-color: #262730 !important;
+        color: #ffffff !important;
+        border: 1px solid #41444C !important;
+        font-size: 0.82rem !important;
+        font-weight: 600 !important;
+        padding: 4px 12px !important;
+        margin: 0 0 10px 0 !important;
+        line-height: 1.2 !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        white-space: nowrap !important;
+        box-shadow: none !important;
     }
 
-    /* Tegelknoppen: Exact gelijke grootte, uitlijning en strakke tekstafhandeling */
-    .stButton > button {
+    .stButton > button:hover {
+        background-color: #31333F !important;
+        border-color: #555867 !important;
+        color: #ffffff !important;
+    }
+
+    /* 2. TEGEL KNOPPEN (Alleen knoppen met een regelafstand/meerdere regels): VASTE GROOTTE */
+    .stButton > button:has(br), .stButton > button:has(p + p) {
         width: 100% !important;
         height: 72px !important;
         min-height: 72px !important;
@@ -122,7 +147,7 @@ st.markdown(
         border: 1px solid #d0e5d4 !important;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.70rem !important;
+        font-size: 0.72rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
@@ -137,13 +162,13 @@ st.markdown(
         overflow: hidden !important;
     }
 
-    /* Pictogram vergroten op eerste regel */
-    .stButton > button p::first-line {
+    /* Pictogram vergroten op tegelknoppen */
+    .stButton > button:has(br) p::first-line {
         font-size: 1.25rem !important;
         line-height: 1.2 !important;
     }
 
-    .stButton > button:hover, .stButton > button:active {
+    .stButton > button:has(br):hover, .stButton > button:has(br):active {
         transform: scale(0.97) !important;
         background: linear-gradient(145deg, #e1efe4, #d0e5d4) !important;
         border-color: #2E7D32 !important;
@@ -441,7 +466,6 @@ if st.session_state["huidige_pagina"] == "Home":
             unsafe_allow_html=True,
         )
 
-    # 2-koloms indeling voor alle hoofdfuncties
     r1c1, r1c2 = st.columns(2)
     with r1c1:
         if st.button("💬\nChat Boris", key="btn_chat"):
@@ -797,7 +821,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
             col_target = cols[i % 4]
             with col_target:
-                # Koppel de categorie-naam terug zonder spaties voor de database
                 db_sleutel = "Brood/Ontbijt" if cat_naam == "Brood / Ontbijt" else cat_naam
                 if st.button(f"{icoon}\n{cat_naam}", key=f"hoofd_cat_{i}"):
                     st.session_state["actieve_hoofd_cat"] = db_sleutel
