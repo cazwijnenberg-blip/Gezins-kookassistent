@@ -1,12 +1,10 @@
 import streamlit as st
 from google import genai
-from google.genai import types
 from PIL import Image
 import datetime
 import calendar
 import json
 import os
-import random
 import base64
 
 # --- PAGINA CONFIGURATIE ---
@@ -154,29 +152,63 @@ def genereer_tts_script(tekst, knop_tekst="🎙️", img_id="Boris-main-img"):
 # HOOFDSCHERM
 # ==========================================
 if st.session_state["huidige_pagina"] == "Home":
-    st.markdown("""
+    vandaag_str = vandaag.strftime("%Y-%m-%d")
+    aantal_boodschappen = len(st.session_state["gezin_data"]["boodschappen"])
+    aantal_afspraken_komend = len([a for a in st.session_state["gezin_data"]["agenda"] if a["datum"] >= vandaag_str])
+
+    base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
+    IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
+
+    st.markdown(f"""
         <style>
-        /* Aangepaste styling voor de tegels in 2 kolommen met eigen lichte kleuren */
-        .stButton > button {
-            width: 100%;
-            min-height: 110px;
+        /* Schone CSS lay-out voor de kolommen en knoppen */
+        .stButton > button {{
+            width: 100% !important;
+            min-height: 120px !important;
             white-space: pre-wrap !important;
-            border-radius: 16px;
-            border: 1px solid rgba(0,0,0,0.1);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-            transition: all 0.2s ease-in-out;
-            font-size: 1rem;
-            font-weight: 600;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            line-height: 1.4;
-        }
-        .stButton > button:hover {
+            border-radius: 16px !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
+            transition: all 0.2s ease-in-out !important;
+            font-size: 1.05rem !important;
+            font-weight: 600 !important;
+            margin-bottom: 15px !important;
+        }}
+        .stButton > button:hover {{
             transform: scale(0.98);
-            opacity: 0.9;
-        }
+        }}
+        
+        /* Subtiele pastelkleuren per knop, gelinkt op tekst/aria-label */
+        button[aria-label*="Chat met Boris"] {{
+            background-color: #E8F5E9 !important;
+            color: #1b5e20 !important;
+            /* Avatar integratie direct in de eerste knop! */
+            background-image: url('{IMAGE_SRC}');
+            background-size: 50px 50px;
+            background-repeat: no-repeat;
+            background-position: 15px center;
+            padding-left: 60px !important;
+        }}
+        button[aria-label*="Boodschappen"] {{
+            background-color: #E3F2FD !important;
+            color: #0d47a1 !important;
+        }}
+        button[aria-label*="Agenda"] {{
+            background-color: #FFF3E0 !important;
+            color: #e65100 !important;
+        }}
+        button[aria-label*="Koken"] {{
+            background-color: #F3E5F5 !important;
+            color: #4a148c !important;
+        }}
+        button[aria-label*="Kassabon"] {{
+            background-color: #E0F7FA !important;
+            color: #006064 !important;
+        }}
+        button[aria-label*="Kids"] {{
+            background-color: #FFEBEE !important;
+            color: #b71c1c !important;
+        }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -186,100 +218,24 @@ if st.session_state["huidige_pagina"] == "Home":
     with col_datum:
         st.markdown(f"<p style='text-align: right; font-size: 13px; color: #aaa; margin-top: 10px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
-    vandaag_str = vandaag.strftime("%Y-%m-%d")
-    aantal_boodschappen = len(st.session_state["gezin_data"]["boodschappen"])
-    aantal_afspraken_komend = len([a for a in st.session_state["gezin_data"]["agenda"] if a["datum"] >= vandaag_str])
-
-    base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-    IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
-
-    # Rij 1
+    # Knoppen in nette kolommen
     r1c1, r1c2 = st.columns(2)
     with r1c1:
-        st.markdown("""
-            <style>
-            div[data-testid="column"]:nth-child(1) div[data-testid="stButton"] > button {
-                background-color: #E8F5E9 !important;
-                color: #1b5e20 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        
-        # Visuele integratie van de foto in de eerste tegel
-        st.markdown(f"""
-            <div style="background-color: #E8F5E9; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 12px; min-height: 110px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.15); margin-bottom: 10px;">
-        """, unsafe_allow_html=True)
-        
-        col_img, col_txt = st.columns([1, 2])
-        with col_img:
-            st.markdown(f"<img src='{IMAGE_SRC}' style='width:50px; height:50px; border-radius:50%; object-fit:cover; border: 2px solid #4CAF50;'>", unsafe_allow_html=True)
-        with col_txt:
-            if st.button("💬 **Chat met Boris**", key="btn_chat"):
-                ga_naar("Chat")
-        st.markdown("</div>", unsafe_allow_html=True)
-
+        if st.button("💬 **Chat met Boris**", use_container_width=True, key="btn_chat"): ga_naar("Chat")
     with r1c2:
-        st.markdown("""
-            <style>
-            div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button {
-                background-color: #E3F2FD !important;
-                color: #0d47a1 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        if st.button(f"🛒 **Boodschappen**\n\n{aantal_boodschappen} items", key="btn_boodschappen"):
-            ga_naar("Boodschappenlijst")
+        if st.button(f"🛒 **Boodschappen**\n\n{aantal_boodschappen} items", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
 
-    # Rij 2
     r2c1, r2c2 = st.columns(2)
     with r2c1:
-        st.markdown("""
-            <style>
-            div[data-testid="column"]:nth-child(1) div[data-testid="stButton"] > button {
-                background-color: #FFF3E0 !important;
-                color: #e65100 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        if st.button(f"📅 **Agenda**\n\n{aantal_afspraken_komend} gepland", key="btn_agenda"):
-            ga_naar("Agenda")
-            
+        if st.button(f"📅 **Agenda**\n\n{aantal_afspraken_komend} gepland", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
     with r2c2:
-        st.markdown("""
-            <style>
-            div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button {
-                background-color: #F3E5F5 !important;
-                color: #4a148c !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        if st.button("🍳 **Koken & Recepten**\n\nVoorraad check", key="btn_recepten"):
-            ga_naar("Recepten")
+        if st.button("🍳 **Koken & Recepten**\n\nVoorraad check", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
 
-    # Rij 3
     r3c1, r3c2 = st.columns(2)
     with r3c1:
-        st.markdown("""
-            <style>
-            div[data-testid="column"]:nth-child(1) div[data-testid="stButton"] > button {
-                background-color: #E0F7FA !important;
-                color: #006064 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        if st.button("🧾 **Kassabon Scanner**\n\nBewaar & analyseer", key="btn_bonnen"):
-            ga_naar("Kassabon Scanner")
-            
+        if st.button("🧾 **Kassabon Scanner**\n\nBewaar & analyseer", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
     with r3c2:
-        st.markdown("""
-            <style>
-            div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button {
-                background-color: #FFEBEE !important;
-                color: #b71c1c !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-        if st.button("🧸 **Kids Verhaaltje**\n\nVoor Tygo & Duen", key="btn_kids"):
+        if st.button("🧸 **Kids Verhaaltje**\n\nVoor Tygo & Duen", use_container_width=True, key="btn_kids"):
             with st.spinner("Boris verzint iets..."):
                 prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig verhaaltje (max 4 zines). Richt je tot peuter Tygo en baby Duen."
                 response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
@@ -336,7 +292,6 @@ elif st.session_state["huidige_pagina"] == "Agenda":
     cal = calendar.monthcalendar(jaar, maand)
     vandaag_str = vandaag.strftime("%Y-%m-%d")
     
-    # Hier is de kleur van de dag/datums in de kalender opzettelijk heel donker/zwart en bijna niet leesbaar gemaakt
     html_cal = """
     <style>
     .cal-wrapper { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding-bottom: 20px; }
@@ -373,185 +328,64 @@ elif st.session_state["huidige_pagina"] == "Agenda":
         if item.get("datum", "") >= f"{jaar}-{maand:02d}-01":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
+
 # ==========================================
 # SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
-    if "actieve_hoofd_cat" not in st.session_state:
-        st.session_state["actieve_hoofd_cat"] = None
-    if "actieve_sub_cat" not in st.session_state:
-        st.session_state["actieve_sub_cat"] = None
-    if "geselecteerd_product" not in st.session_state:
-        st.session_state["geselecteerd_product"] = None
+    if "actieve_hoofd_cat" not in st.session_state: st.session_state["actieve_hoofd_cat"] = None
+    if "actieve_sub_cat" not in st.session_state: st.session_state["actieve_sub_cat"] = None
+    if "geselecteerd_product" not in st.session_state: st.session_state["geselecteerd_product"] = None
 
+    # Nieuwe categorie indeling volgens verzoek
     supermarkt_database = {
-        "Brood & Beleg": {
-            "Vers brood": [
-                ("🍞", "Tijgerbruin heel", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,49"}),
-                ("🍞", "Tijgerwit heel", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,49"}),
-                ("🍞", "Volkoren brood heel", {"AH": "€1,69", "Jumbo": "€1,59", "Dirk": "€1,39"}),
-                ("🍞", "Witbrood heel", {"AH": "€1,59", "Jumbo": "€1,49", "Dirk": "€1,29"}),
-                ("🌾", "Meergranen brood", {"AH": "€1,99", "Jumbo": "€1,89", "Dirk": "€1,59"}),
-                ("🥖", "Vloerbrood wit", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€2,09"}),
-                ("🥖", "Vloerbrood spelt", {"AH": "€2,79", "Jumbo": "€2,69", "Dirk": "€2,39"})
-            ],
-            "Afbakbroodjes": [
-                ("🥖", "Afbak Pistolets wit (4 st)", {"AH": "€0,99", "Jumbo": "€0,89", "Lidl": "€0,79"}),
-                ("🥖", "Afbak Pistolets bruin (4 st)", {"AH": "€0,99", "Jumbo": "€0,89", "Lidl": "€0,79"}),
-                ("🥐", "Afbak Croissants (6 st)", {"AH": "€1,89", "Jumbo": "€1,79", "Lidl": "€1,49"}),
-                ("🥖", "Stokbrood wit", {"AH": "€0,85", "Jumbo": "€0,79", "Dirk": "€0,69"}),
-                ("🥖", "Knoflookstokbrood", {"AH": "€1,29", "Jumbo": "€1,19", "Lidl": "€0,99"})
-            ],
-            "Zoet beleg & Jam": [
-                ("🍓", "Aardbeienjam", {"AH": "€2,19", "Jumbo": "€2,09", "Dirk": "€1,79"}),
-                ("🍑", "Abrikozenjam", {"AH": "€2,19", "Jumbo": "€2,09", "Dirk": "€1,79"}),
-                ("🍒", "Kersenjam", {"AH": "€2,29", "Jumbo": "€2,19", "Dirk": "€1,89"}),
-                ("🍫", "Hagelslag Melk", {"AH": "€2,19", "Jumbo": "€2,09", "Dirk": "€1,89"}),
-                ("🍫", "Hagelslag Puur", {"AH": "€2,19", "Jumbo": "€2,09", "Dirk": "€1,89"}),
-                ("🍫", "Vruchtenhagelslag", {"AH": "€1,99", "Jumbo": "€1,89", "Dirk": "€1,69"}),
-                ("🍫", "Chocoladevlokken Melk/Puur", {"AH": "€2,39", "Jumbo": "€2,29", "Dirk": "€1,99"}),
-                ("🥜", "Pindakaas glad", {"AH": "€2,69", "Jumbo": "€2,59", "Dirk": "€2,29"}),
-                ("🥜", "Pindakaas met stukjes", {"AH": "€2,79", "Jumbo": "€2,69", "Dirk": "€2,39"}),
-                ("🍫", "Chocoladepasta Hazelnoot", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€1,99"}),
-                ("🍯", "Honing", {"AH": "€3,29", "Jumbo": "€3,09", "Dirk": "€2,79"})
-            ],
-            "Hartig beleg": [
-                ("🧀", "Jonge Kaas plakken", {"AH": "€2,79", "Jumbo": "€2,69", "Dirk": "€2,39"}),
-                ("🧀", "Belegen Kaas plakken", {"AH": "€3,19", "Jumbo": "€3,09", "Dirk": "€2,79"}),
-                ("🥩", "Kipfilet plakken", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€2,09"}),
-                ("🥩", "Beenham plakken", {"AH": "€2,69", "Jumbo": "€2,59", "Dirk": "€2,29"}),
-                ("🥩", "Salami plakken", {"AH": "€1,99", "Jumbo": "€1,89", "Dirk": "€1,59"}),
-                ("🥚", "Eiersalade", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,49"})
-            ]
+        "Aardappelen, Groenten en Fruit (AGF)": {
+            "Vers fruit": [("🍎", "Appels", {"AH": "€2.49", "Jumbo": "€2.39"}), ("🍌", "Bananen", {"AH": "€1.79"}), ("🍓", "Bessen", {"AH": "€3.49"}), ("🍊", "Citrusvruchten", {"AH": "€2.89"})],
+            "Verse groenten": [("🥬", "Bladgroenten", {"AH": "€1.49"}), ("🍅", "Vruchtgroenten", {"AH": "€1.99"}), ("🧅", "Uien", {"AH": "€1.39"})],
+            "Aardappelen": [("🥔", "Verse aardappelen", {"AH": "€2.99"}), ("🥔", "Krieltjes", {"AH": "€1.89"})],
+            "Snoepgroente & salades": [("🥗", "Maaltijdsalade", {"AH": "€4.50"}), ("🥕", "Snackgroenten", {"AH": "€2.49"})]
         },
-        "Groente & Fruit": {
-            "Fruit": [
-                ("🍎", "Appels Elstar (1kg)", {"AH": "€2,29", "Jumbo": "€2,19", "Lidl": "€1,79"}),
-                ("🍎", "Appels Gala (1kg)", {"AH": "€2,49", "Jumbo": "€2,39", "Lidl": "€1,99"}),
-                ("🍌", "Bananen (tros)", {"AH": "€1,79", "Jumbo": "€1,69", "Lidl": "€1,49"}),
-                ("🍐", "Peren Conference (1kg)", {"AH": "€2,49", "Jumbo": "€2,39", "Lidl": "€1,99"}),
-                ("🍊", "Sinaasappels (1,5kg)", {"AH": "€2,89", "Jumbo": "€2,69", "Lidl": "€2,39"}),
-                ("🍓", "Aardbeien (bak 400g)", {"AH": "€3,49", "Jumbo": "€3,29", "Lidl": "€2,99"}),
-                ("🍇", "Witte pitloze druiven (500g)", {"AH": "€2,99", "Jumbo": "€2,89", "Lidl": "€2,49"}),
-                ("🫐", "Blauwe bessen (300g)", {"AH": "€3,29", "Jumbo": "€3,09", "Lidl": "€2,79"}),
-                ("🥝", "Kiwi gold (4 stuks)", {"AH": "€2,19", "Jumbo": "€2,09", "Lidl": "€1,79"}),
-                ("🍈", "Meloen Charentais", {"AH": "€2,49", "Jumbo": "€2,29", "Lidl": "€1,99"})
-            ],
-            "Groente": [
-                ("🍅", "Cherrytomaten (500g)", {"AH": "€1,99", "Jumbo": "€1,89", "Lidl": "€1,49"}),
-                (" cucumbers", "Komkommer (per stuk)", {"AH": "€0,99", "Jumbo": "€0,95", "Lidl": "€0,79"}),
-                ("🥕", "Bospeen (1kg)", {"AH": "€1,29", "Jumbo": "€1,19", "Lidl": "€0,99"}),
-                ("🥦", "Broccoli (500g)", {"AH": "€1,49", "Jumbo": "€1,39", "Lidl": "€1,19"}),
-                ("🧅", "Witte Uien (1,5kg)", {"AH": "€1,39", "Jumbo": "€1,29", "Lidl": "€1,09"}),
-                ("🧄", "Knoflook (netje)", {"AH": "€0,75", "Jumbo": "€0,69", "Lidl": "€0,59"}),
-                ("🫑", "Paprika mix (3 stuks)", {"AH": "€1,89", "Jumbo": "€1,79", "Lidl": "€1,49"}),
-                ("🥬", "IJsbergsla", {"AH": "€1,19", "Jumbo": "€1,09", "Lidl": "€0,95"}),
-                ("🥑", "Avocado (per stuk)", {"AH": "€1,59", "Jumbo": "€1,49", "Lidl": "€1,29"}),
-                ("🍄", "Champignons wit (250g)", {"AH": "€1,39", "Jumbo": "€1,29", "Lidl": "€1,09"})
-            ]
+        "Zuivel, Eieren en Boter": {
+            "Melk & Karnemelk": [("🥛", "Verse melk", {"AH": "€1.19"}), ("🥛", "Houdbare melk", {"AH": "€1.05"}), ("🥛", "Havermelk", {"AH": "€2.19"})],
+            "Yoghurt & Kwark": [("🥣", "Yoghurt naturel", {"AH": "€1.59"}), ("🥣", "Plantaardige yoghurt", {"AH": "€2.49"}), ("🥣", "Kwark", {"AH": "€1.89"})],
+            "Kaas": [("🧀", "Verpakte kaas", {"AH": "€3.49"}), ("🧀", "Smeerkaas", {"AH": "€1.69"}), ("🧀", "Hüttenkäse", {"AH": "€1.49"})],
+            "Eieren & Boter": [("🥚", "Scharreleieren", {"AH": "€2.89"}), ("🧈", "Roomboter", {"AH": "€2.49"}), ("🧈", "Margarine", {"AH": "€1.79"})]
         },
-        "Zuivel & Eieren": {
-            "Melk & Botter": [
-                ("🥛", "Halfvolle Melk (1L)", {"AH": "€1,15", "Jumbo": "€1,12", "Dirk": "€1,05"}),
-                ("🥛", "Volle Melk (1L)", {"AH": "€1,19", "Jumbo": "€1,15", "Dirk": "€1,09"}),
-                ("🥛", "Karnemelk (1L)", {"AH": "€1,09", "Jumbo": "€1,05", "Dirk": "€0,99"}),
-                ("🧈", "Roomboter (250g)", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€2,19"}),
-                ("🧈", "Margarine kuipje", {"AH": "€1,79", "Jumbo": "€1,69", "Dirk": "€1,49"})
-            ],
-            "Kaas & Eieren": [
-                ("🧀", "Jonge Kaas stuk (500g)", {"AH": "€6,99", "Jumbo": "€6,79", "Dirk": "€5,99"}),
-                ("🧀", "Belegen Kaas stuk (500g)", {"AH": "€7,49", "Jumbo": "€7,29", "Dirk": "€6,49"}),
-                ("🧀", "Mozzarella", {"AH": "€0,89", "Jumbo": "€0,85", "Dirk": "€0,75"}),
-                ("🧀", "Geraspte kaas 30+", {"AH": "€2,19", "Jumbo": "€2,09", "Dirk": "€1,89"}),
-                ("🥚", "Scharreleieren (10 stuks)", {"AH": "€2,89", "Jumbo": "€2,79", "Dirk": "€2,49"})
-            ],
-            "Yoghurt & VLA": [
-                ("🥣", "Griekse Yoghurt (1L)", {"AH": "€2,19", "Jumbo": "€2,09", "Dirk": "€1,89"}),
-                ("🥣", "Magere Kwark (500g)", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,59"}),
-                ("🍮", "Vanillevla (1L)", {"AH": "€1,39", "Jumbo": "€1,29", "Dirk": "€1,15"}),
-                ("🍮", "Chocoladevla (1L)", {"AH": "€1,39", "Jumbo": "€1,29", "Dirk": "€1,15"}),
-                ("🥛", "Drink yoghurt aardbei", {"AH": "€1,79", "Jumbo": "€1,69", "Dirk": "€1,49"})
-            ]
+        "Vlees, Vis en Vega": {
+            "Vlees": [("🍗", "Kip", {"AH": "€5.49"}), ("🥩", "Rundvarken", {"AH": "€4.99"}), ("🥩", "Gehakt", {"AH": "€4.49"}), ("🥩", "Biefstuk", {"AH": "€6.99"})],
+            "Vis": [("🐟", "Verse vis", {"AH": "€5.99"}), ("🐟", "Gerookte vis", {"AH": "€4.49"}), ("🦐", "Zeevruchten", {"AH": "€4.99"})],
+            "Vegetarisch & Vegan": [("🌱", "Vleesvervangers", {"AH": "€3.49"}), ("🌱", "Tofu", {"AH": "€1.99"}), ("🧆", "Falafel", {"AH": "€2.49"})]
         },
-        "Vlees & Vis": {
-            "Vlees": [
-                ("🥩", "Rundergehakt (500g)", {"AH": "€4,99", "Jumbo": "€4,89", "Dirk": "€4,49"}),
-                ("🍗", "Kipfilet (500g)", {"AH": "€5,49", "Jumbo": "€5,29", "Dirk": "€4,89"}),
-                ("🍗", "Kippendijen (400g)", {"AH": "€5,89", "Jumbo": "€5,69", "Dirk": "€5,19"}),
-                ("🍔", "Runderhamburgers (4 st)", {"AH": "€3,29", "Jumbo": "€3,09", "Dirk": "€2,79"}),
-                ("🥓", "Spekblokjes (250g)", {"AH": "€1,79", "Jumbo": "€1,69", "Dirk": "€1,49"})
-            ],
-            "Vis": [
-                ("🐟", "Zalmfilet (2 stuks)", {"AH": "€5,99", "Jumbo": "€5,79", "Dirk": "€5,29"}),
-                ("🐟", "Tonijn in blik (3 stuks)", {"AH": "€3,49", "Jumbo": "€3,29", "Dirk": "€2,99"}),
-                ("🦐", "Garnalen (pakje)", {"AH": "€3,99", "Jumbo": "€3,79", "Dirk": "€3,49"}),
-                ("🐟", "Kabeljauwfilet", {"AH": "€4,89", "Jumbo": "€4,69", "Dirk": "€4,29"})
-            ]
+        "Brood, Banket en Ontbijt": {
+            "Vers brood & Banket": [("🍞", "Vers brood", {"AH": "€1.89"}), ("🥖", "Afgebakken brood", {"AH": "€0.99"}), ("🥐", "Croissants", {"AH": "€1.49"}), ("🍰", "Gebak", {"AH": "€3.99"})],
+            "Ontbijtgranen": [("🥣", "Muesli", {"AH": "€2.49"}), ("🥣", "Havermout", {"AH": "€1.19"}), ("🥣", "Cruesli", {"AH": "€2.89"})],
+            "Broodbeleg": [("🍓", "Jam", {"AH": "€2.19"}), ("🥜", "Pindakaas", {"AH": "€2.69"}), ("🍫", "Chocopasta", {"AH": "€2.49"}), ("🍫", "Hagelslag", {"AH": "€2.19"}), ("🍯", "Honing", {"AH": "€3.29"})]
         },
         "Dranken": {
-            "Frisdrank & Water": [
-                ("💧", "Mineraalwater stil (1,5L)", {"AH": "€0,65", "Jumbo": "€0,60", "Dirk": "€0,50"}),
-                ("💧", "Mineraalwater bruis (1,5L)", {"AH": "€0,65", "Jumbo": "€0,60", "Dirk": "€0,50"}),
-                ("🥤", "Coca-Cola / Zero (1,5L)", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€2,19"}),
-                ("🥤", "Sinas / 7Up (1,5L)", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,59"}),
-                ("🧃", "Appelsap (1L)", {"AH": "€1,69", "Jumbo": "€1,59", "Dirk": "€1,39"})
-            ],
-            "Koffie & Thee": [
-                ("☕", "Koffiebonen (1kg)", {"AH": "€13,99", "Jumbo": "€12,99", "Dirk": "€11,99"}),
-                ("☕", "Filterkoffie (500g)", {"AH": "€4,29", "Jumbo": "€4,09", "Dirk": "€3,79"}),
-                ("☕", "Koffiepads (36 st)", {"AH": "€3,49", "Jumbo": "€3,29", "Dirk": "€2,99"}),
-                ("🍵", "Groene Thee", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,59"}),
-                ("🍵", "Zwarte Thee (Earl Grey)", {"AH": "€1,79", "Jumbo": "€1,69", "Dirk": "€1,49"})
-            ],
-            "Bier & Wijn": [
-                ("🍺", "Bier krat (Heineken/Grolsch 24x30cl)", {"AH": "€15,99", "Jumbo": "€15,49", "Dirk": "€14,49"}),
-                ("🍷", "Huiswijn Rood / Wit", {"AH": "€4,99", "Jumbo": "€4,79", "Dirk": "€3,99"})
-            ]
+            "Frisdranken & Sappen": [("🥤", "Cola", {"AH": "€2.49"}), ("🥤", "Sinas", {"AH": "€1.89"}), ("💧", "Water", {"AH": "€0.65"}), ("🧃", "Verse jus", {"AH": "€2.99"})],
+            "Koffie & Thee": [("☕", "Koffiebonen", {"AH": "€12.99"}), ("☕", "Gemalen koffie", {"AH": "€4.29"}), ("🍵", "Theezakjes", {"AH": "€1.89"})],
+            "Alcohol": [("🍺", "Bier", {"AH": "€15.99"}), ("🍷", "Wijn", {"AH": "€5.99"}), ("🥃", "Sterke drank", {"AH": "€14.99"})]
         },
-        "Voorraadkast": {
-            "Pasta & Rijst": [
-                ("🍝", "Spaghetti (500g)", {"AH": "€1,29", "Jumbo": "€1,19", "Dirk": "€0,99"}),
-                ("🍝", "Macaroni / Penne (500g)", {"AH": "€1,29", "Jumbo": "€1,19", "Dirk": "€0,99"}),
-                ("🍚", "Witte Rijst (1kg)", {"AH": "€1,79", "Jumbo": "€1,69", "Dirk": "€1,49"}),
-                ("🍚", "Pandan Rijst (1kg)", {"AH": "€2,49", "Jumbo": "€2,29", "Dirk": "€1,99"}),
-                ("🍜", "Noodles (pak)", {"AH": "€0,89", "Jumbo": "€0,85", "Dirk": "€0,75"})
-            ],
-            "Sauzen & Soepen": [
-                ("🥫", "Pastasaus Tomatenbasilicum", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,49"}),
-                ("🥫", "Groentesoep in blik", {"AH": "€2,19", "Jumbo": "€2,09", "Dirk": "€1,79"}),
-                ("🥫", "Tomatensoep in zak", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€1,99"}),
-                ("🥣", "Bruine Bonen in blik", {"AH": "€1,19", "Jumbo": "€1,09", "Dirk": "€0,95"})
-            ]
+        "Houdbare Kruidenierswaren": {
+            "Pasta, Rijst & Granen": [("🍝", "Pastasoorten", {"AH": "€1.29"}), ("🍚", "Rijst", {"AH": "€1.79"}), ("🍜", "Noedels", {"AH": "€0.89"}), ("🌾", "Quinoa", {"AH": "€2.49"})],
+            "Soepen & Conserven": [("🥫", "Tomatensoep", {"AH": "€2.49"}), ("🥫", "Groenten in blik", {"AH": "€1.19"}), ("🐟", "Vis in blik (tonijn)", {"AH": "€3.49"})],
+            "Kruiden & Sauzen": [("🧂", "Mayonaise", {"AH": "€1.89"}), ("🍅", "Ketchup", {"AH": "€1.69"}), ("🫒", "Olijfolie", {"AH": "€4.99"}), ("🌿", "Droge kruiden", {"AH": "€1.49"})]
         },
-        "Snacks & Snoep": {
-            "Chips & Zout": [
-                ("🥔", "Ribbelchips Naturel", {"AH": "€1,69", "Jumbo": "€1,59", "Dirk": "€1,39"}),
-                ("🌶️", "Paprika Chips", {"AH": "€1,69", "Jumbo": "€1,59", "Dirk": "€1,39"}),
-                ("🥨", "Borrelnoten", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,49"}),
-                ("🍿", "Popcorn zoet/zout", {"AH": "€1,29", "Jumbo": "€1,19", "Dirk": "€0,99"})
-            ],
-            "Koek & Zoet": [
-                ("🍪", "Room Boterkoekjes", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,59"}),
-                ("🍫", "Chocoladereep Melk", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€2,09"}),
-                ("🧇", "Stroopwafels (10 stuks)", {"AH": "€1,89", "Jumbo": "€1,79", "Dirk": "€1,49"}),
-                ("🥞", "Kant-en-klare Pannenkoeken", {"AH": "€1,79", "Jumbo": "€1,69", "Dirk": "€1,49"})
-            ]
+        "Snacks, Snoep en Zoetigheid": {
+            "Zoutje & Nootjes": [("🥔", "Chips", {"AH": "€1.69"}), ("🍿", "Popcorn", {"AH": "€1.29"}), ("🥨", "Borrelnoten", {"AH": "€1.89"})],
+            "Snoep & Chocolade": [("🍬", "Drop", {"AH": "€1.49"}), ("🍫", "Repen", {"AH": "€2.49"}), ("🍬", "Pepermunt", {"AH": "€1.19"})],
+            "Koekjes": [("🍪", "Ontbijtkoek", {"AH": "€1.89"}), ("🍪", "Gevulde koeken", {"AH": "€2.19"}), ("🍪", "Biscuits", {"AH": "€1.49"})]
         },
-        "Huishouden & Baby": {
-            "Schoonmaak": [
-                ("🧻", "Toiletpapier (9 rollen)", {"AH": "€5,49", "Jumbo": "€5,29", "Dirk": "€4,49"}),
-                ("🧻", "Keukenpapier (4 rollen)", {"AH": "€2,49", "Jumbo": "€2,39", "Dirk": "€1,99"}),
-                ("🧼", "Wasmiddel Vloeibaar (20 wbe)", {"AH": "€7,99", "Jumbo": "€7,49", "Dirk": "€6,49"}),
-                ("🫧", "Afwasmiddel", {"AH": "€1,99", "Jumbo": "€1,89", "Dirk": "€1,59"})
-            ],
-            "Baby (Tygo & Duen)": [
-                ("👶", "Pampers Luiers Maat 4/5", {"Kruidvat": "€14,99", "AH": "€14,49", "Etos": "€14,99"}),
-                ("🧻", "Billendoekjes (pak 12 stuks)", {"Kruidvat": "€12,99", "Lidl": "€9,99", "AH": "€11,99"}),
-                ("🧴", "Sudocrem Billenzalf", {"Kruidvat": "€4,49", "Etos": "€4,79", "AH": "€4,69"}),
-                ("🧴", "Zwitsal Badschuim / Shampoo", {"Kruidvat": "€3,29", "AH": "€2,99", "Etos": "€3,19"})
-            ]
+        "Diepvries en Kant-en-Klaar": {
+            "Diepvries": [("🍕", "Pizza's", {"AH": "€3.49"}), ("🍦", "IJs", {"AH": "€3.99"}), ("🍟", "Frites", {"AH": "€2.19"}), ("🥦", "Diepvriesgroente", {"AH": "€1.69"})],
+            "Maaltijden & Soepen": [("🍲", "Koelverse maaltijden", {"AH": "€4.99"}), ("🥣", "Maaltijdsoepen", {"AH": "€3.49"})]
+        },
+        "Drogisterij en Non-Food": {
+            "Persoonlijke verzorging": [("🧴", "Shampoo", {"AH": "€3.49"}), ("🧴", "Deodorant", {"AH": "€2.99"}), ("🪥", "Tandpasta", {"AH": "€2.49"}), ("🧼", "Douchegel", {"AH": "€2.89"})],
+            "Schoonmaak & Huishouden": [("🧼", "Vaatwastabletten", {"AH": "€6.99"}), ("🫧", "Wasmiddel", {"AH": "€7.99"}), ("🧻", "Wc-papier", {"AH": "€5.49"}), ("🗑️", "Vuilniszakken", {"AH": "€1.99"})],
+            "Dierenverzorging": [("🐾", "Kattenbrokken", {"AH": "€4.99"}), ("🦴", "Hondenvoer", {"AH": "€5.99"}), ("🧴", "Vlooienmiddelen", {"AH": "€8.99"})]
         }
     }
 
@@ -666,18 +500,11 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 cols = st.columns(3)
                 sub_namen = list(sub_dict.keys())
                 
-                icoon_map = {
-                    "Vers brood": "🍞", "Afbakbroodjes": "🥖", "Zoet beleg & Jam": "🍓", "Hartig beleg": "🧀",
-                    "Fruit": "🍎", "Groente": "🥦", "Melk & Botter": "🥛", "Kaas & Eieren": "🧀", "Yoghurt & VLA": "🥣",
-                    "Vlees": "🥩", "Vis": "🐟", "Frisdrank & Water": "🥤", "Koffie & Thee": "☕", "Bier & Wijn": "🍺",
-                    "Pasta & Rijst": "🍝", "Sauzen & Soepen": "🥫", "Chips & Zout": "🥔", "Koek & Zoet": "🍪",
-                    "Schoonmaak": "🧻", "Baby (Tygo & Duen)": "👶"
-                }
-                
+                # Dynamisch icoontje pakken o.b.v. eerste item in sublijst
                 for i, s_naam in enumerate(sub_namen):
                     col_target = cols[i % 3]
                     with col_target:
-                        ic = icoon_map.get(s_naam, "🛒")
+                        ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
                         if st.button(f"{ic}\n\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
                             st.session_state["actieve_sub_cat"] = s_naam
                             st.rerun()
@@ -701,14 +528,15 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             st.markdown("### 🗂️ Supermarkt Categorieën")
             
             hoofd_icoontjes = {
-                "Brood & Beleg": "🍞",
-                "Groente & Fruit": "🍎",
-                "Zuivel & Eieren": "🥛",
-                "Vlees & Vis": "🥩",
+                "Aardappelen, Groenten en Fruit (AGF)": "🥦",
+                "Zuivel, Eieren en Boter": "🥛",
+                "Vlees, Vis en Vega": "🥩",
+                "Brood, Banket en Ontbijt": "🥐",
                 "Dranken": "🥤",
-                "Voorraadkast": "🍝",
-                "Snacks & Snoep": "🥔",
-                "Huishouden & Baby": "🧻"
+                "Houdbare Kruidenierswaren": "🥫",
+                "Snacks, Snoep en Zoetigheid": "🍫",
+                "Diepvries en Kant-en-Klaar": "🍕",
+                "Drogisterij en Non-Food": "🧻"
             }
             
             cols = st.columns(3)
@@ -720,18 +548,19 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                         st.session_state["actieve_sub_cat"] = None
                         st.rerun()
 
+
+# ==========================================
+# OVERIGE PAGINA'S
+# ==========================================
 elif st.session_state["huidige_pagina"] == "Chat":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    
     if "chat_messages" not in st.session_state: st.session_state["chat_messages"] = []
     for msg in st.session_state["chat_messages"]:
         with st.chat_message(msg["role"], avatar="🐗" if msg["role"] == "assistant" else "👤"): st.write(msg["content"])
-
     user_prompt = st.chat_input("Typ je bericht hier...")
     if user_prompt:
         st.session_state["chat_messages"].append({"role": "user", "content": user_prompt})
         with st.chat_message("user", avatar="👤"): st.write(user_prompt)
-            
         with st.chat_message("assistant", avatar="🐗"):
             with st.spinner("Boris denkt na..."):
                 instructie = """Geef een JSON: {"actie": "boodschap_toevoegen"|"agenda_toevoegen"|"geen", "boodschap": "item"|"", "agenda_datum": "YYYY-MM-DD"|"", "agenda_beschrijving": "omschrijving"|"", "antwoord": "tekst"}"""
@@ -743,61 +572,23 @@ elif st.session_state["huidige_pagina"] == "Chat":
                     elif data.get("actie") == "agenda_toevoegen" and data.get("agenda_beschrijving"): d = data.get("agenda_datum") or vandaag.strftime("%Y-%m-%d"); voeg_agenda_toe(d, data["agenda_beschrijving"]); actie_melding = f"\n\n*(🗓️ '{data['agenda_beschrijving']}' is ingepland!)*"
                     eind_antwoord = data.get("antwoord", "Oink! Geregeld!") + actie_melding
                 except: eind_antwoord = "Oink! Ik begreep het even niet goed."
-                
                 st.write(eind_antwoord)
                 st.session_state["chat_messages"].append({"role": "assistant", "content": eind_antwoord})
                 st.rerun()
 
 elif st.session_state["huidige_pagina"] == "Recepten":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    
     camera_file = st.camera_input("📸 Maak direct een foto van je voorraad")
     uploaded_file = st.file_uploader("Of kies een foto uit je galerij", type=["jpg", "png"])
-    
     gekozen_foto = camera_file if camera_file is not None else uploaded_file
-
     if st.button("Genereer Recepten", type="primary") and gekozen_foto:
         with st.spinner("Boris snuffelt..."):
             prompt = f"{GEZIN_CONTEXT}\nKijk naar de foto. Verzin 2 recepten die bederf tegengaan, geschikt voor kinderen (3 en 1). Eindig met JSON: {{\"boodschappen\": [\"item\"]}}."
             res = client.models.generate_content(model='gemini-2.5-flash', contents=[prompt, Image.open(gekozen_foto)])
             st.session_state["laatste_recept"] = res.text
-            
     if "laatste_recept" in st.session_state:
         t = st.session_state["laatste_recept"]
         try:
             j = "{" + t.split("{")[-1].split("}")[0] + "}"
             d = json.loads(j)
-            t = t.replace(j, "").replace("```json", "").replace("```", "")
-            st.markdown(t)
-            if d.get("boodschappen"):
-                st.info(f"🛒 **Ontbreekt:** {', '.join(d['boodschappen'])}")
-                if st.button("Voeg toe aan lijst!"):
-                    for i in d["boodschappen"]: voeg_boodschap_toe(i)
-                    del st.session_state["laatste_recept"]; st.rerun()
-        except: st.markdown(t)
-
-elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
-    if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    
-    camera_bon = st.camera_input("📸 Maak direct een foto van je bon")
-    uploaded_bon = st.file_uploader("Of upload je bon", type=["jpg", "png"])
-    gekozen_bon = camera_bon if camera_bon is not None else uploaded_bon
-
-    if st.button("Scan", type="primary") and gekozen_bon:
-        with st.spinner("Scannen..."):
-            res = client.models.generate_content(model='gemini-2.5-flash', contents=[f"{GEZIN_CONTEXT} Vat deze bon samen en markeer het totaalbedrag.", Image.open(gekozen_bon)])
-            st.write(res.text)
-
-elif st.session_state["huidige_pagina"] == "Kids":
-    if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    
-    if 'laatste_verhaaltje' in st.session_state:
-        base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
-        st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img src="{IMAGE_SRC}" id="Boris-kids-img" class="Boris-img-mini" alt="Boris" style="width: 150px; height: 150px; border-radius:50%; object-fit:cover; border: 3px solid #4CAF50;">
-            </div>
-        """, unsafe_allow_html=True)
-        st.success(st.session_state['laatste_verhaaltje'])
-        st.components.v1.html(genereer_tts_script(st.session_state['laatste_verhaaltje'], "🔊 Lees voor", "Boris-kids-img"), height=55)
+            t = t.replace(j, "").replace("```json", "").replace("
