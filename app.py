@@ -7,6 +7,7 @@ import json
 import os
 import base64
 import re
+import random
 
 # --- PAGINA CONFIGURATIE ---
 st.set_page_config(
@@ -127,7 +128,7 @@ def laad_data():
     standaard_data = {
         "agenda": [
             {"datum": "2026-04-22", "beschrijving": "💍 Trouwdag Chiel & Angelica"},
-            {"datum": "2026-06-11", "beschrijving": "🎂 Verjaardag Duen (1 jr)"},
+            {"datum": "2026-06-11", "beschrijving": "🎂 Verjaardag Duén (1 jr)"},
             {"datum": "2026-10-24", "beschrijving": "🎂 Verjaardag Tygo (3 jr)"}
         ],
         "boodschappen": [],
@@ -207,26 +208,31 @@ def leeg_boodschappenlijst():
 
 GEZIN_CONTEXT = (
     "Je bent Boris, de slimme en vriendelijke virtuele huiszwijn-assistent van het gezin Zwijnenberg: "
-    "Chiel, Angelica, Tygo (3 jaar) en Duen (1 jaar). Jullie wonen in Luttenberg. "
+    "Chiel, Angelica, Tygo (3 jaar) en Duén (1 jaar). Jullie wonen in Luttenberg. "
     "Je helpt met planning en voedselverspilling voorkomen. Je spreekt vrolijk, kort, en eindigt vaak met 'Oink!'."
 )
 
-def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-main-img"):
+def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-main-img", auto_play=False):
+    """Genereert TTS script met verhoogde pitch (1.6) voor een speelse, kinderlijke Boris-stem."""
     schone_tekst = tekst.replace("'", "\\'").replace('"', '\\"').replace('\n', ' ')
+    auto_code = "spreekTekst('" + schone_tekst + "');" if auto_play else ""
     return f"""
     <script>
     function spreekTekst(tekst) {{
         let img = window.parent.document.getElementById('{img_id}');
         window.speechSynthesis.cancel();
         let speech = new SpeechSynthesisUtterance(tekst);
-        speech.lang = 'nl-NL'; speech.pitch = 1.1; speech.rate = 1.05;
+        speech.lang = 'nl-NL'; 
+        speech.pitch = 1.6; /* Hoge pitch voor vrolijke, kinderlijke Boris stem */
+        speech.rate = 1.05;
         let voices = window.speechSynthesis.getVoices();
-        let maleVoice = voices.find(v => v.lang.includes('nl') && (v.name.toLowerCase().includes('xander') || v.name.toLowerCase().includes('male')));
-        if (maleVoice) {{ speech.voice = maleVoice; }} else if (voices.length > 0) {{ speech.voice = voices.find(v => v.lang.includes('nl')); }}
+        let nlVoice = voices.find(v => v.lang.includes('nl'));
+        if (nlVoice) {{ speech.voice = nlVoice; }}
         speech.onstart = function() {{ if(img) img.classList.add('Boris-img-talking'); }};
         speech.onend = function() {{ if(img) img.classList.remove('Boris-img-talking'); }};
         window.speechSynthesis.speak(speech);
     }}
+    {auto_code}
     </script>
     <div style="text-align: center; margin-top: 5px;">
         <button onclick="spreekTekst('{schone_tekst}')" style="background-color: #1e1e1e; border: 1px solid #333; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; color: #4CAF50; width: 100%; padding: 8px;">
@@ -267,12 +273,9 @@ if st.session_state["huidige_pagina"] == "Home":
     with r3c1:
         if st.button("🧾 Kassabon Scanner\n\nBewaar & analyseer", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
     with r3c2:
-        if st.button("🧸 Kids Verhaaltje\n\nVoor Tygo & Duen", use_container_width=True, key="btn_kids"):
-            with st.spinner("Boris verzint iets..."):
-                prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig verhaaltje (max 4 zinnen). Richt je tot peuter Tygo en baby Duen."
-                response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-                st.session_state['laatste_verhaaltje'] = response.text
-                ga_naar("Kids")
+        if st.button("🐶 Dierenquiz!\n\nVoor Tygo & Duén", use_container_width=True, key="btn_kids"):
+            st.session_state["quiz_vraag_data"] = None
+            ga_naar("Kids")
 
 
 # ==========================================
@@ -373,7 +376,6 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 # SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
-    # Verwerk spraakinvoer als die is doorgegeven via URL parameters
     if "spraak_input" in st.query_params:
         gesproken_tekst = st.query_params.get("spraak_input")
         if gesproken_tekst:
@@ -456,7 +458,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         sub_dict = supermarkt_database.get(hoofd_cat, {})
         
         if sub_cat is None:
-            # 2-koloms tegelindeling voor subcategorieën
             cols = st.columns(2)
             sub_namen = list(sub_dict.keys())
             for i, s_naam in enumerate(sub_namen):
@@ -474,7 +475,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             st.markdown(f"**🏷️ {sub_cat}**")
             producten = sub_dict.get(sub_cat, [])
             
-            # 2-koloms tegelindeling voor producten (direct toevoegen bij klik)
             cols = st.columns(2)
             for i, (icoon, prod_naam) in enumerate(producten):
                 col_target = cols[i % 2]
@@ -497,7 +497,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             "Drogisterij en Non-Food": "🧻"
         }
         
-        # 2-koloms tegelindeling voor hoofdcategorieën
         cols = st.columns(2)
         for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
             col_target = cols[i % 2]
@@ -520,7 +519,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             verwerk_meerdere_boodschappen(nieuw_item)
             st.rerun()
 
-    # WEB SPEECH API KNOP (Spreek een hele lijst in)
     st.components.v1.html("""
         <div style="text-align: center; margin-top: 5px;">
             <button id="micBtn" onclick="startDictation()" style="
@@ -679,7 +677,7 @@ elif st.session_state["huidige_pagina"] == "Recepten":
     
     if st.button("👨‍🍳 Genereer Recepten", type="primary") and gekozen_foto:
         with st.spinner("Boris snuffelt tussen de ingrediënten..."):
-            prompt = f"{GEZIN_CONTEXT}\nKijk naar de foto. Verzin 2 snelle, kindvriendelijke recepten (voor peuter Tygo en baby Duen). Eindig je tekst exact met deze JSON indeling op een nieuwe regel: {{\"boodschappen\": [\"ontbrekend item 1\", \"ontbrekend item 2\"]}}."
+            prompt = f"{GEZIN_CONTEXT}\nKijk naar de foto. Verzin 2 snelle, kindvriendelijke recepten (voor peuter Tygo en baby Duén). Eindig je tekst exact met deze JSON indeling op een nieuwe regel: {{\"boodschappen\": [\"ontbrekend item 1\", \"ontbrekend item 2\"]}}."
             res = client.models.generate_content(model='gemini-2.5-flash', contents=[prompt, Image.open(gekozen_foto)])
             st.session_state["laatste_recept"] = res.text
             
@@ -717,28 +715,86 @@ elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
 
 
 # ==========================================
-# SUBPAGINA: KIDS VERHAALTJE
+# SUBPAGINA: BORIS' INTERACTIEVE DIERENQUIZ
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Kids":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
-    st.markdown("### 🧸 Boris Vertelt...")
-    if 'laatste_verhaaltje' in st.session_state:
-        base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
-        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
-        
-        st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img src="{IMAGE_SRC}" id="Boris-kids-img" style="width: 140px; height: 140px; border-radius:50%; object-fit:cover; border: 3px solid #4CAF50;">
-            </div>
-        """, unsafe_allow_html=True)
-        
-        st.success(st.session_state['laatste_verhaaltje'])
-        st.components.v1.html(genereer_tts_script(st.session_state['laatste_verhaaltje'], "🔊 Voorlezen aan Tygo & Duen", "Boris-kids-img"), height=55)
-        
-        if st.button("🔄 Nog een verhaaltje!"):
-            with st.spinner("Boris verzint een nieuw avontuur..."):
-                prompt = f"{GEZIN_CONTEXT} Vertel een nieuw heel kort, grappig verhaaltje (max 4 zinnen). Richt je tot peuter Tygo en baby Duen."
-                response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-                st.session_state['laatste_verhaaltje'] = response.text
+    st.markdown("### 🐶 Boris' Dierenquiz voor Tygo & Duén")
+    
+    base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
+    IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
+    
+    st.markdown(f"""
+        <div style="text-align: center; margin-bottom: 15px;">
+            <img src="{IMAGE_SRC}" id="Boris-quiz-img" style="width: 120px; height: 120px; border-radius:50%; object-fit:cover; border: 3px solid #4CAF50;">
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Vaste lijst met super simpele en vrolijke peutervragen
+    DIEREN_QUIZ_DATABASE = [
+        {
+            "vraag": "Oink! Ik ben roze, houd heel veel van modder en maak oink oink! Wie ben ik?",
+            "opties": [("🐷", "Varken", True), ("🐶", "Hond", False), ("🐱", "Kat", False)]
+        },
+        {
+            "vraag": "Oink! Ik loei heel hard Moe! en geef lekkere verse melk. Wie ben ik?",
+            "opties": [("🐮", "Koe", True), ("🐸", "Kikker", False), ("🦆", "Eend", False)]
+        },
+        {
+            "vraag": "Oink! Ik blaf woef woef en kwispel vrolijk met mijn staart! Wie ben ik?",
+            "opties": [("🐱", "Kat", False), ("🐶", "Hond", True), ("🐵", "Aap", False)]
+        },
+        {
+            "vraag": "Oink! Ik zwem in de vijver en roep kwak kwak! Wie ben ik?",
+            "opties": [("🦆", "Eend", True), ("🦁", "Leeuw", False), ("🐰", "Konijn", False)]
+        },
+        {
+            "vraag": "Oink! Ik ben supergroot, grijs en heb een lange slurf! Wie ben ik?",
+            "opties": [("🐭", "Muis", False), ("🐘", "Olifant", True), ("🐔", "Kip", False)]
+        }
+    ]
+
+    # Initialiseer een vraag in session_state als die er nog niet is
+    if "quiz_vraag_data" not in st.session_state or st.session_state["quiz_vraag_data"] is None:
+        st.session_state["quiz_vraag_data"] = random.choice(DIEREN_QUIZ_DATABASE)
+        st.session_state["quiz_beantwoord"] = False
+        st.session_state["quiz_goed"] = False
+
+    vraag_data = st.session_state["quiz_vraag_data"]
+
+    st.info(f"💬 **Boris vraagt:**\n\n\"{vraag_data['vraag']}\"")
+    
+    # Audio knop voor de vraag van Boris
+    st.components.v1.html(genereer_tts_script(vraag_data['vraag'], "🔊 Luister naar Boris", "Boris-quiz-img"), height=45)
+
+    st.markdown("<p style='text-align: center; font-weight: bold; margin-top: 15px;'>Tik op het juiste dier! 👇</p>", unsafe_allow_html=True)
+
+    # 3 grote antwoordknoppen
+    cols_quiz = st.columns(3)
+    for i, (emoji, naam, is_correct) in enumerate(vraag_data["opties"]):
+        with cols_quiz[i]:
+            if st.button(f"{emoji}\n\n{naam}", key=f"quiz_optie_{i}", use_container_width=True):
+                st.session_state["quiz_beantwoord"] = True
+                st.session_state["quiz_goed"] = is_correct
+                st.session_state["gekozen_dier"] = naam
                 st.rerun()
+
+    # Feedback na het klikken
+    if st.session_state.get("quiz_beantwoord"):
+        if st.session_state.get("quiz_goed"):
+            st.balloons()
+            hoera_tekst = f"Oink oink! Wat ontzettend knap van Tygo en Duén! Het is inderdaad de {st.session_state['gekozen_dier']}! Jullie verdienen een grote virtuele varkenssticker! 🐷⭐"
+            st.success(hoera_tekst)
+            st.components.v1.html(genereer_tts_script(hoera_tekst, "🔊 Hoera!", "Boris-quiz-img", auto_play=True), height=45)
+        else:
+            fout_tekst = f"Oink! Bijna! Dat is de {st.session_state['gekozen_dier']}. Probeer het nog een keertje!"
+            st.warning(fout_tekst)
+            st.components.v1.html(genereer_tts_script(fout_tekst, "🔊 Oeps!", "Boris-quiz-img", auto_play=True), height=45)
+
+    st.markdown("---")
+    if st.button("🔄 Volgende Vraag!", use_container_width=True):
+        st.session_state["quiz_vraag_data"] = random.choice(DIEREN_QUIZ_DATABASE)
+        st.session_state["quiz_beantwoord"] = False
+        st.session_state["quiz_goed"] = False
+        st.rerun()
