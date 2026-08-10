@@ -1,5 +1,5 @@
-import streamlit as str_module
 import streamlit as st
+import streamlit.components.v1 as components
 from google import genai
 import datetime
 import calendar
@@ -42,11 +42,10 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (ALGEMEEN & MOBAIR VRIENDELIJK) ---
+# --- STYLING (ALGEMEEN) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
-
     body, html, .main, .block-container {
         max-width: 100vw !important;
         width: 100% !important;
@@ -218,15 +217,24 @@ if st.session_state["huidige_pagina"] == "Home":
         ("🎵", "Disco", "Kids")
     ]
 
-    # Echte Android app-grid styling en opbouw via HTML/CSS (geen breekbare st.columns)
+    # Strakke Android app grid via st.components.v1.html (zodat het nooit als platte tekst wordt getoond)
     app_grid_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
     <style>
+    body {
+        background-color: transparent;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
     .android-app-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 8px;
-        margin-top: 10px;
         width: 100%;
+        box-sizing: border-box;
     }
     .app-tile {
         display: flex;
@@ -236,19 +244,19 @@ if st.session_state["huidige_pagina"] == "Home":
         background-color: #EBF5EE;
         border: 1px solid #C4E0CC;
         border-radius: 12px;
-        padding: 10px 4px;
+        padding: 8px 2px;
         text-decoration: none !important;
         transition: transform 0.1s ease, background-color 0.1s ease;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-        height: 72px;
+        height: 68px;
+        box-sizing: border-box;
     }
-    .app-tile:active, .app-tile:hover {
+    .app-tile:active {
         transform: scale(0.95);
         background-color: #D6EFE0;
-        border-color: #2E7D32;
     }
     .app-icon {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         line-height: 1.1;
         margin-bottom: 2px;
     }
@@ -263,19 +271,27 @@ if st.session_state["huidige_pagina"] == "Home":
         width: 100%;
     }
     </style>
+    </head>
+    <body>
     <div class="android-app-grid">
     """
     
     for icoon, tekst, pagina in dashboard_knoppen:
         app_grid_html += f"""
-        <a href="?pagina={pagina}" class="app-tile">
+        <a href="?pagina={pagina}" target="_top" class="app-tile">
             <span class="app-icon">{icoon}</span>
             <span class="app-label">{tekst}</span>
         </a>
         """
         
-    app_grid_html += "</div>"
-    st.markdown(app_grid_html, unsafe_allow_html=True)
+    app_grid_html += """
+    </div>
+    </body>
+    </html>
+    """
+    
+    # Render component met een vaste hoogte die precies past voor 2 rijen app-tegels
+    components.html(app_grid_html, height=155, scrolling=False)
 
 # ==========================================
 # SUBPAGINA: CHAT (MET BORIS)
