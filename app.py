@@ -6,6 +6,7 @@ import calendar
 import json
 import os
 import base64
+import re
 
 # --- PAGINA CONFIGURATIE ---
 st.set_page_config(
@@ -15,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- BROWSER HISTORY & BACK-BUTTON FIX ---
+# --- BROWSER HISTORY & ROUTING ---
 query_pagina = st.query_params.get("pagina", "Home")
 
 if "huidige_pagina" not in st.session_state or st.session_state["huidige_pagina"] != query_pagina:
@@ -30,15 +31,29 @@ def ga_naar(pagina):
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
     client = genai.Client(api_key=api_key)
-except FileNotFoundError:
-    st.error("🚨 Kan de API-sleutel niet vinden. Zorg voor een `.streamlit/secrets.toml` bestand.")
+except Exception:
+    st.error("🚨 Kan de API-sleutel niet vinden. Zorg voor een `.streamlit/secrets.toml` bestand met `GEMINI_API_KEY`.")
     st.stop()
 
 def get_image_base64(image_path):
     if os.path.exists(image_path):
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode('utf-8')
+        try:
+            with open(image_path, "rb") as img_file:
+                return base64.b64encode(img_file.read()).decode('utf-8')
+        except Exception:
+            return None
     return None
+
+# --- HELPER: ROBUUST JSON PARSEN ---
+def parse_json_veilig(tekst):
+    """Haalt JSON uit een AI antwoord, ook als er markdown omheen staat."""
+    try:
+        m = re.search(r'\{.*\}', tekst, re.DOTALL)
+        if m:
+            return json.loads(m.group(0))
+        return json.loads(tekst)
+    except Exception:
+        return None
 
 # --- ALGEMENE STYLING ---
 st.markdown("""
@@ -67,8 +82,12 @@ def laad_data():
                 data = json.load(f)
                 if "boodschappen_historie" not in data:
                     data["boodschappen_historie"] = {}
+                if "agenda" not in data:
+                    data["agenda"] = []
+                if "boodschappen" not in data:
+                    data["boodschappen"] = []
                 return data
-        except json.JSONDecodeError:
+        except Exception:
             pass
             
     standaard_data = {
@@ -84,18 +103,27 @@ def laad_data():
     return standaard_data
 
 def sla_data_op(data):
-    with open(DATA_BESTAND, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    try:
+        with open(DATA_BESTAND, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        st.error(f"Fout bij opslaan: {e}")
 
-if "gezin_data" not in st.session_state: st.session_state["gezin_data"] = laad_data()
+if "gezin_data" not in st.session_state: 
+    st.session_state["gezin_data"] = laad_data()
 
 vandaag = datetime.date.today()
 if "kalender_jaar" not in st.session_state: st.session_state["kalender_jaar"] = vandaag.year
 if "kalender_maand" not in st.session_state: st.session_state["kalender_maand"] = vandaag.month
 
 def voeg_agenda_toe(datum, beschrijving):
-    st.session_state["gezin_data"]["agenda"].append({"datum": datum, "beschrijving": beschrijving})
+    st.session_state["gezin_data"]["agenda"].append({"datum": str(datum), "beschrijving": beschrijving})
     sla_data_op(st.session_state["gezin_data"])
+
+def verwijder_agenda_item(index):
+    if 0 <= index < len(st.session_state["gezin_data"]["agenda"]):
+        st.session_state["gezin_data"]["agenda"].pop(index)
+        sla_data_op(st.session_state["gezin_data"])
 
 def voeg_boodschap_toe(item):
     if "boodschappen" not in st.session_state["gezin_data"]: 
@@ -117,14 +145,18 @@ def verwijder_boodschappen_op_index(indices_om_te_verwijderen):
     st.session_state["gezin_data"]["boodschappen"] = nieuwe_lijst
     sla_data_op(st.session_state["gezin_data"])
 
+def leeg_boodschappenlijst():
+    st.session_state["gezin_data"]["boodschappen"] = []
+    sla_data_op(st.session_state["gezin_data"])
+
 GEZIN_CONTEXT = (
     "Je bent Boris, de slimme en vriendelijke virtuele huiszwijn-assistent van het gezin Zwijnenberg: "
     "Chiel, Angelica, Tygo (3 jaar) en Duen (1 jaar). Jullie wonen in Luttenberg. "
     "Je helpt met planning en voedselverspilling voorkomen. Je spreekt vrolijk, kort, en eindigt vaak met 'Oink!'."
 )
 
-def genereer_tts_script(tekst, knop_tekst="🎙️", img_id="Boris-main-img"):
-    schone_tekst = tekst.replace("'", "").replace('"', '').replace('\n', ' ')
+def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-main-img"):
+    schone_tekst = tekst.replace("'", "\\'").replace('"', '\\"').replace('\n', ' ')
     return f"""
     <script>
     function spreekTekst(tekst) {{
@@ -154,60 +186,57 @@ def genereer_tts_script(tekst, knop_tekst="🎙️", img_id="Boris-main-img"):
 if st.session_state["huidige_pagina"] == "Home":
     vandaag_str = vandaag.strftime("%Y-%m-%d")
     aantal_boodschappen = len(st.session_state["gezin_data"]["boodschappen"])
-    aantal_afspraken_komend = len([a for a in st.session_state["gezin_data"]["agenda"] if a["datum"] >= vandaag_str])
+    aantal_afspraken_komend = len([a for a in st.session_state["gezin_data"]["agenda"] if a.get("datum", "") >= vandaag_str])
 
     base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
     IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
 
     st.markdown(f"""
         <style>
-        /* Schone CSS lay-out voor de kolommen en knoppen */
         .stButton > button {{
             width: 100% !important;
-            min-height: 120px !important;
+            min-height: 110px !important;
             white-space: pre-wrap !important;
             border-radius: 16px !important;
-            border: 1px solid rgba(0,0,0,0.1) !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
             transition: all 0.2s ease-in-out !important;
             font-size: 1.05rem !important;
             font-weight: 600 !important;
-            margin-bottom: 15px !important;
+            margin-bottom: 10px !important;
         }}
         .stButton > button:hover {{
             transform: scale(0.98);
         }}
         
-        /* Subtiele pastelkleuren per knop, gelinkt op tekst/aria-label */
         button[aria-label*="Chat met Boris"] {{
-            background-color: #E8F5E9 !important;
-            color: #1b5e20 !important;
-            /* Avatar integratie direct in de eerste knop! */
+            background-color: #1b3e20 !important;
+            color: #e8f5e9 !important;
             background-image: url('{IMAGE_SRC}');
-            background-size: 50px 50px;
+            background-size: 45px 45px;
             background-repeat: no-repeat;
             background-position: 15px center;
-            padding-left: 60px !important;
+            padding-left: 55px !important;
         }}
         button[aria-label*="Boodschappen"] {{
-            background-color: #E3F2FD !important;
-            color: #0d47a1 !important;
+            background-color: #0d3756 !important;
+            color: #e3f2fd !important;
         }}
         button[aria-label*="Agenda"] {{
-            background-color: #FFF3E0 !important;
-            color: #e65100 !important;
+            background-color: #4a2800 !important;
+            color: #fff3e0 !important;
         }}
         button[aria-label*="Koken"] {{
-            background-color: #F3E5F5 !important;
-            color: #4a148c !important;
+            background-color: #3b1442 !important;
+            color: #f3e5f5 !important;
         }}
         button[aria-label*="Kassabon"] {{
-            background-color: #E0F7FA !important;
-            color: #006064 !important;
+            background-color: #00363a !important;
+            color: #e0f7fa !important;
         }}
         button[aria-label*="Kids"] {{
-            background-color: #FFEBEE !important;
-            color: #b71c1c !important;
+            background-color: #4a1111 !important;
+            color: #ffebee !important;
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -218,7 +247,7 @@ if st.session_state["huidige_pagina"] == "Home":
     with col_datum:
         st.markdown(f"<p style='text-align: right; font-size: 13px; color: #aaa; margin-top: 10px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
-    # Knoppen in nette kolommen
+    # Knoppen in strakke 2-kolom lay-out
     r1c1, r1c2 = st.columns(2)
     with r1c1:
         if st.button("💬 **Chat met Boris**", use_container_width=True, key="btn_chat"): ga_naar("Chat")
@@ -237,7 +266,7 @@ if st.session_state["huidige_pagina"] == "Home":
     with r3c2:
         if st.button("🧸 **Kids Verhaaltje**\n\nVoor Tygo & Duen", use_container_width=True, key="btn_kids"):
             with st.spinner("Boris verzint iets..."):
-                prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig verhaaltje (max 4 zines). Richt je tot peuter Tygo en baby Duen."
+                prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig verhaaltje (max 4 zinnen). Richt je tot peuter Tygo en baby Duen."
                 response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
                 st.session_state['laatste_verhaaltje'] = response.text
                 ga_naar("Kids")
@@ -297,7 +326,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
     .cal-wrapper { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding-bottom: 20px; }
     .cal-header { text-align: center; font-weight: bold; font-size: 0.85rem; padding: 5px 0; color: #aaa; }
     .cal-day { background-color: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 5px; text-align: center; min-height: 45px; display: flex; flex-direction: column; justify-content: start; align-items: center;}
-    .cal-day span.date { font-weight: bold; font-size: 0.9rem; color: #111111 !important; }
+    .cal-day span.date { font-weight: bold; font-size: 0.9rem; color: #ffffff !important; }
     .cal-day.vandaag { border: 2px solid #ff9800; background-color: #2c221e; }
     .cal-day.afspraak { background-color: #1c2732; border-color: #2196F3; }
     .cal-leeg { background-color: transparent; }
@@ -322,11 +351,19 @@ elif st.session_state["huidige_pagina"] == "Agenda":
     html_cal += "</div>"
     st.markdown(html_cal, unsafe_allow_html=True)
     
-    st.markdown("### Aankomende planning:")
-    gesorteerd = sorted(st.session_state["gezin_data"].get("agenda", []), key=lambda x: str(x.get("datum", "")))
-    for item in gesorteerd:
-        if item.get("datum", "") >= f"{jaar}-{maand:02d}-01":
-            st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
+    st.markdown("### 📋 Alle geplande afspraken:")
+    agenda_lijst = st.session_state["gezin_data"].get("agenda", [])
+    if agenda_lijst:
+        for idx, item in enumerate(agenda_lijst):
+            col_info, col_del = st.columns([5, 1])
+            with col_info:
+                st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
+            with col_del:
+                if st.button("🗑️", key=f"del_agenda_{idx}"):
+                    verwijder_agenda_item(idx)
+                    st.rerun()
+    else:
+        st.info("Er staan nog geen afspraken in de agenda.")
 
 
 # ==========================================
@@ -339,7 +376,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "actieve_sub_cat" not in st.session_state: st.session_state["actieve_sub_cat"] = None
     if "geselecteerd_product" not in st.session_state: st.session_state["geselecteerd_product"] = None
 
-    # Nieuwe categorie indeling volgens verzoek
     supermarkt_database = {
         "Aardappelen, Groenten en Fruit (AGF)": {
             "Vers fruit": [("🍎", "Appels", {"AH": "€2.49", "Jumbo": "€2.39"}), ("🍌", "Bananen", {"AH": "€1.79"}), ("🍓", "Bessen", {"AH": "€3.49"}), ("🍊", "Citrusvruchten", {"AH": "€2.89"})],
@@ -393,7 +429,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         <style>
         .stButton > button {
             width: 100%;
-            height: 95px !important;
+            height: 90px !important;
             white-space: pre-wrap !important;
             border-radius: 12px !important;
             border: 1px solid #333333 !important;
@@ -423,172 +459,284 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     col_lijst, col_tegels = st.columns([1, 1.4])
 
     with col_lijst:
-        st.markdown("### 🛒 Actieve Boodschappenlijst")
+        st.markdown("### 🛒 Actieve Lijst")
         
         with st.form("boodschap_form", clear_on_submit=True):
-            nieuw_item = st.text_input("Voeg handmatig een product toe...")
-            if st.form_submit_button("Toevoegen") and nieuw_item:
+            nieuw_item = st.text_input("Snel toevoegen...")
+            if st.form_submit_button("➕ Toevoegen") and nieuw_item:
                 voeg_boodschap_toe(nieuw_item)
                 st.rerun()
 
         boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
         if boodschappen_lijst:
-            st.markdown(f"<p style='color: #aaa; font-size: 0.9rem;'>Totaal {len(boodschappen_lijst)} items op je lijstje</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color: #aaa; font-size: 0.85rem;'>Totaal {len(boodschappen_lijst)} items op je lijstje</p>", unsafe_allow_html=True)
             indices_om_te_verwijderen = []
             for idx, item in enumerate(boodschappen_lijst):
                 if st.checkbox(f"🛍️ {item}", key=f"boodschap_{idx}"): 
                     indices_om_te_verwijderen.append(idx)
             
-            if indices_om_te_verwijderen:
-                if st.button("🗑️ Verwijder aangevinkte items", type="primary", use_container_width=True):
-                    verwijder_boodschappen_op_index(indices_om_te_verwijderen)
+            st.markdown("---")
+            col_v1, col_v2 = st.columns(2)
+            with col_v1:
+                if indices_om_te_verwijderen:
+                    if st.button("🗑️ Wissen (aangevinkt)", use_container_width=True):
+                        verwijder_boodschappen_op_index(indices_om_te_verwijderen)
+                        st.rerun()
+            with col_v2:
+                if st.button("❌ Alles wissen", use_container_width=True):
+                    leeg_boodschappenlijst()
                     st.rerun()
         else: 
             st.markdown("""
-                <div style="background-color: #1a1a1a; border: 2px dashed #444; border-radius: 16px; padding: 25px; text-align: center; color: #888; margin-top: 15px;">
-                    <h4>Je lijstje is leeg! 📭</h4>
-                    <p style="font-size: 0.9rem; margin-bottom: 0;">Tik rechts op een categorie om direct jullie favoriete producten toe te voegen.</p>
+                <div style="background-color: #1a1a1a; border: 2px dashed #444; border-radius: 16px; padding: 20px; text-align: center; color: #888; margin-top: 15px;">
+                    <h5>Je lijstje is leeg! 📭</h5>
+                    <p style="font-size: 0.85rem; margin-bottom: 0;">Kies rechts een categorie of gebruik de zoekbalk om toe te voegen.</p>
                 </div>
             """, unsafe_allow_html=True)
 
     with col_tegels:
-        hoofd_cat = st.session_state["actieve_hoofd_cat"]
-        sub_cat = st.session_state["actieve_sub_cat"]
-        geselecteerd_prod = st.session_state["geselecteerd_product"]
+        st.markdown("### 🗂️ Producten Zoeken & Kiezen")
         
-        if geselecteerd_prod is not None:
-            prod_naam, prijzen_dict = geselecteerd_prod
+        # Snelle zoekbalk over de gehele database
+        zoek_query = st.text_input("🔍 Zoek een product...", key="prod_zoekbalk")
+        
+        if zoek_query:
+            st.markdown(f"**Zoekresultaten voor '{zoek_query}':**")
+            gevonden = []
+            for h_cat, sub_dict in supermarkt_database.items():
+                for s_cat, prods in sub_dict.items():
+                    for icoon, p_naam, prijzen in prods:
+                        if zoek_query.lower() in p_naam.lower():
+                            gevonden.append((icoon, p_naam, prijzen))
             
-            col_terug_prod, col_titel_prod = st.columns([1, 3])
-            with col_terug_prod:
-                if st.button("⬅️ Terug", key="terug_naar_sub"):
-                    st.session_state["geselecteerd_product"] = None
-                    st.rerun()
-            with col_titel_prod:
-                st.markdown(f"#### 🏷️ {prod_naam}")
-                
-            st.markdown("<p style='color: #aaa; font-size: 0.9rem;'>Vergelijk prijzen of voeg direct toe aan je lijstje:</p>", unsafe_allow_html=True)
-            
-            cols_prijs = st.columns(len(prijzen_dict))
-            for i, (winkel, prijs) in enumerate(prijzen_dict.items()):
-                with cols_prijs[i % len(cols_prijs)]:
-                    if st.button(f"🏪 **{winkel}**\n\n{prijs}", key=f"winkel_prijs_{i}", use_container_width=True):
-                        voeg_boodschap_toe(prod_naam)
-                        st.success(f"'{prod_naam}' toegevoegd!")
-                        st.session_state["geselecteerd_product"] = None
-                        st.rerun()
-            
-            if st.button("➕ Voeg toe zonder winkelkeuze", use_container_width=True):
-                voeg_boodschap_toe(prod_naam)
-                st.success(f"'{prod_naam}' toegevoegd!")
-                st.session_state["geselecteerd_product"] = None
-                st.rerun()
-
-        elif hoofd_cat is not None:
-            col_terug, col_titel_cat = st.columns([1, 3])
-            with col_terug:
-                if st.button("⬅️ Terug", key="terug_naar_hoofd"):
-                    st.session_state["actieve_hoofd_cat"] = None
-                    st.rerun()
-            with col_titel_cat:
-                st.markdown(f"#### 📂 {hoofd_cat}")
-            
-            sub_dict = supermarkt_database.get(hoofd_cat, {})
-            
-            if sub_cat is None:
-                st.markdown("<p style='color: #aaa; font-size: 0.9rem;'>Kies een subcategorie:</p>", unsafe_allow_html=True)
+            if gevonden:
                 cols = st.columns(3)
-                sub_namen = list(sub_dict.keys())
-                
-                # Dynamisch icoontje pakken o.b.v. eerste item in sublijst
-                for i, s_naam in enumerate(sub_namen):
+                for i, (icoon, prod_naam, prijzen_dict) in enumerate(gevonden):
                     col_target = cols[i % 3]
                     with col_target:
-                        ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
-                        if st.button(f"{ic}\n\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
-                            st.session_state["actieve_sub_cat"] = s_naam
+                        if st.button(f"{icoon}\n\n{prod_naam}", key=f"zoek_prod_{i}", use_container_width=True):
+                            voeg_boodschap_toe(prod_naam)
+                            st.success(f"'{prod_naam}' toegevoegd!")
                             st.rerun()
             else:
-                if st.button("⬅️ Terug naar subcategorieën", key="terug_naar_subs_overzicht"):
-                    st.session_state["actieve_sub_cat"] = None
-                    st.rerun()
-                    
-                st.markdown(f"##### 🏷️ {sub_cat}")
-                producten = sub_dict.get(sub_cat, [])
-                
-                cols = st.columns(3)
-                for i, (icoon, prod_naam, prijzen_dict) in enumerate(producten):
-                    col_target = cols[i % 3]
-                    with col_target:
-                        if st.button(f"{icoon}\n\n{prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
-                            st.session_state["geselecteerd_product"] = (prod_naam, prijzen_dict)
-                            st.rerun()
-
+                st.info("Geen exacte matches. Voeg het handmatig toe aan je lijstje!")
         else:
-            st.markdown("### 🗂️ Supermarkt Categorieën")
+            hoofd_cat = st.session_state["actieve_hoofd_cat"]
+            sub_cat = st.session_state["actieve_sub_cat"]
+            geselecteerd_prod = st.session_state["geselecteerd_product"]
             
-            hoofd_icoontjes = {
-                "Aardappelen, Groenten en Fruit (AGF)": "🥦",
-                "Zuivel, Eieren en Boter": "🥛",
-                "Vlees, Vis en Vega": "🥩",
-                "Brood, Banket en Ontbijt": "🥐",
-                "Dranken": "🥤",
-                "Houdbare Kruidenierswaren": "🥫",
-                "Snacks, Snoep en Zoetigheid": "🍫",
-                "Diepvries en Kant-en-Klaar": "🍕",
-                "Drogisterij en Non-Food": "🧻"
-            }
-            
-            cols = st.columns(3)
-            for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
-                col_target = cols[i % 3]
-                with col_target:
-                    if st.button(f"{icoon}\n\n{cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
-                        st.session_state["actieve_hoofd_cat"] = cat_naam
+            if geselecteerd_prod is not None:
+                prod_naam, prijzen_dict = geselecteerd_prod
+                col_terug_prod, col_titel_prod = st.columns([1, 3])
+                with col_terug_prod:
+                    if st.button("⬅️ Terug", key="terug_naar_sub"):
+                        st.session_state["geselecteerd_product"] = None
+                        st.rerun()
+                with col_titel_prod:
+                    st.markdown(f"#### 🏷️ {prod_naam}")
+                    
+                st.markdown("<p style='color: #aaa; font-size: 0.9rem;'>Kies winkel of voeg direct toe:</p>", unsafe_allow_html=True)
+                
+                cols_prijs = st.columns(len(prijzen_dict))
+                for i, (winkel, prijs) in enumerate(prijzen_dict.items()):
+                    with cols_prijs[i % len(cols_prijs)]:
+                        if st.button(f"🏪 **{winkel}**\n\n{prijs}", key=f"winkel_prijs_{i}", use_container_width=True):
+                            voeg_boodschap_toe(prod_naam)
+                            st.success(f"'{prod_naam}' toegevoegd!")
+                            st.session_state["geselecteerd_product"] = None
+                            st.rerun()
+                
+                if st.button("➕ Voeg toe zonder winkelkeuze", use_container_width=True):
+                    voeg_boodschap_toe(prod_naam)
+                    st.success(f"'{prod_naam}' toegevoegd!")
+                    st.session_state["geselecteerd_product"] = None
+                    st.rerun()
+
+            elif hoofd_cat is not None:
+                col_terug, col_titel_cat = st.columns([1, 3])
+                with col_terug:
+                    if st.button("⬅️ Terug", key="terug_naar_hoofd"):
+                        st.session_state["actieve_hoofd_cat"] = None
+                        st.rerun()
+                with col_titel_cat:
+                    st.markdown(f"#### 📂 {hoofd_cat}")
+                
+                sub_dict = supermarkt_database.get(hoofd_cat, {})
+                
+                if sub_cat is None:
+                    cols = st.columns(3)
+                    sub_namen = list(sub_dict.keys())
+                    for i, s_naam in enumerate(sub_namen):
+                        col_target = cols[i % 3]
+                        with col_target:
+                            ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
+                            if st.button(f"{ic}\n\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
+                                st.session_state["actieve_sub_cat"] = s_naam
+                                st.rerun()
+                else:
+                    if st.button("⬅️ Terug naar subcategorieën", key="terug_naar_subs_overzicht"):
                         st.session_state["actieve_sub_cat"] = None
                         st.rerun()
+                        
+                    st.markdown(f"##### 🏷️ {sub_cat}")
+                    producten = sub_dict.get(sub_cat, [])
+                    
+                    cols = st.columns(3)
+                    for i, (icoon, prod_naam, prijzen_dict) in enumerate(producten):
+                        col_target = cols[i % 3]
+                        with col_target:
+                            if st.button(f"{icoon}\n\n{prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
+                                st.session_state["geselecteerd_product"] = (prod_naam, prijzen_dict)
+                                st.rerun()
+
+            else:
+                hoofd_icoontjes = {
+                    "Aardappelen, Groenten en Fruit (AGF)": "🥦",
+                    "Zuivel, Eieren en Boter": "🥛",
+                    "Vlees, Vis en Vega": "🥩",
+                    "Brood, Banket en Ontbijt": "🥐",
+                    "Dranken": "🥤",
+                    "Houdbare Kruidenierswaren": "🥫",
+                    "Snacks, Snoep en Zoetigheid": "🍫",
+                    "Diepvries en Kant-en-Klaar": "🍕",
+                    "Drogisterij en Non-Food": "🧻"
+                }
+                
+                cols = st.columns(3)
+                for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
+                    col_target = cols[i % 3]
+                    with col_target:
+                        if st.button(f"{icoon}\n\n{cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
+                            st.session_state["actieve_hoofd_cat"] = cat_naam
+                            st.session_state["actieve_sub_cat"] = None
+                            st.rerun()
 
 
 # ==========================================
-# OVERIGE PAGINA'S
+# SUBPAGINA: CHAT MET BORIS
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Chat":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    if "chat_messages" not in st.session_state: st.session_state["chat_messages"] = []
-    for msg in st.session_state["chat_messages"]:
-        with st.chat_message(msg["role"], avatar="🐗" if msg["role"] == "assistant" else "👤"): st.write(msg["content"])
-    user_prompt = st.chat_input("Typ je bericht hier...")
+    
+    if "chat_messages" not in st.session_state: 
+        st.session_state["chat_messages"] = []
+        
+    for idx, msg in enumerate(st.session_state["chat_messages"]):
+        with st.chat_message(msg["role"], avatar="🐗" if msg["role"] == "assistant" else "👤"): 
+            st.write(msg["content"])
+            if msg["role"] == "assistant":
+                st.components.v1.html(genereer_tts_script(msg["content"], "🔊 Beluister", f"chat_tts_{idx}"), height=45)
+
+    user_prompt = st.chat_input("Typ je bericht aan Boris...")
     if user_prompt:
         st.session_state["chat_messages"].append({"role": "user", "content": user_prompt})
-        with st.chat_message("user", avatar="👤"): st.write(user_prompt)
+        with st.chat_message("user", avatar="👤"): 
+            st.write(user_prompt)
+            
         with st.chat_message("assistant", avatar="🐗"):
             with st.spinner("Boris denkt na..."):
-                instructie = """Geef een JSON: {"actie": "boodschap_toevoegen"|"agenda_toevoegen"|"geen", "boodschap": "item"|"", "agenda_datum": "YYYY-MM-DD"|"", "agenda_beschrijving": "omschrijving"|"", "antwoord": "tekst"}"""
+                instructie = """Geef een JSON object terug: {"actie": "boodschap_toevoegen"|"agenda_toevoegen"|"geen", "boodschap": "item"|"", "agenda_datum": "YYYY-MM-DD"|"", "agenda_beschrijving": "omschrijving"|"", "antwoord": "tekst"}"""
                 try:
-                    res = client.models.generate_content(model='gemini-2.5-flash', contents=f"{GEZIN_CONTEXT} Gebruiker zegt: '{user_prompt}'\n{instructie}", config={'response_mime_type': 'application/json'})
-                    data = json.loads(res.text)
+                    res = client.models.generate_content(
+                        model='gemini-2.5-flash', 
+                        contents=f"{GEZIN_CONTEXT} Gebruiker zegt: '{user_prompt}'\n{instructie}", 
+                        config={'response_mime_type': 'application/json'}
+                    )
+                    data = parse_json_veilig(res.text) or {}
                     actie_melding = ""
-                    if data.get("actie") == "boodschap_toevoegen" and data.get("boodschap"): voeg_boodschap_toe(data["boodschap"]); actie_melding = f"\n\n*(✅ '{data['boodschap']}' toegevoegd!)*"
-                    elif data.get("actie") == "agenda_toevoegen" and data.get("agenda_beschrijving"): d = data.get("agenda_datum") or vandaag.strftime("%Y-%m-%d"); voeg_agenda_toe(d, data["agenda_beschrijving"]); actie_melding = f"\n\n*(🗓️ '{data['agenda_beschrijving']}' is ingepland!)*"
-                    eind_antwoord = data.get("antwoord", "Oink! Geregeld!") + actie_melding
-                except: eind_antwoord = "Oink! Ik begreep het even niet goed."
+                    if data.get("actie") == "boodschap_toevoegen" and data.get("boodschap"): 
+                        voeg_boodschap_toe(data["boodschap"])
+                        actie_melding = f"\n\n*(✅ '{data['boodschap']}' toegevoegd aan de boodschappen!)*"
+                    elif data.get("actie") == "agenda_toevoegen" and data.get("agenda_beschrijving"): 
+                        d = data.get("agenda_datum") or vandaag.strftime("%Y-%m-%d")
+                        voeg_agenda_toe(d, data["agenda_beschrijving"])
+                        actie_melding = f"\n\n*(🗓️ '{data['agenda_beschrijving']}' gepland op {d}!)*"
+                    
+                    eind_antwoord = data.get("antwoord", res.text) + actie_melding
+                except Exception:
+                    eind_antwoord = "Oink! Er ging even iets mis, maar ik ben er weer!"
+                
                 st.write(eind_antwoord)
                 st.session_state["chat_messages"].append({"role": "assistant", "content": eind_antwoord})
                 st.rerun()
 
+
+# ==========================================
+# SUBPAGINA: RECEPTEN & VOORRAAD
+# ==========================================
 elif st.session_state["huidige_pagina"] == "Recepten":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
-    camera_file = st.camera_input("📸 Maak direct een foto van je voorraad")
-    uploaded_file = st.file_uploader("Of kies een foto uit je galerij", type=["jpg", "png"])
+    
+    st.markdown("### 🍳 Recepten & Voorraad Check")
+    st.write("Maak een foto van de koelkast of voorraadkast. Boris verzint kindvriendelijke recepten!")
+    
+    camera_file = st.camera_input("📸 Maak direct een foto")
+    uploaded_file = st.file_uploader("Of kies een foto uit je galerij", type=["jpg", "png", "jpeg"])
     gekozen_foto = camera_file if camera_file is not None else uploaded_file
-    if st.button("Genereer Recepten", type="primary") and gekozen_foto:
-        with st.spinner("Boris snuffelt..."):
-            prompt = f"{GEZIN_CONTEXT}\nKijk naar de foto. Verzin 2 recepten die bederf tegengaan, geschikt voor kinderen (3 en 1). Eindig met JSON: {{\"boodschappen\": [\"item\"]}}."
+    
+    if st.button("👨‍🍳 Genereer Recepten", type="primary") and gekozen_foto:
+        with st.spinner("Boris snuffelt tussen de ingrediënten..."):
+            prompt = f"{GEZIN_CONTEXT}\nKijk naar de foto. Verzin 2 snelle, kindvriendelijke recepten (voor peuter Tygo en baby Duen). Eindig je tekst exact met deze JSON indeling op een nieuwe regel: {{\"boodschappen\": [\"ontbrekend item 1\", \"ontbrekend item 2\"]}}."
             res = client.models.generate_content(model='gemini-2.5-flash', contents=[prompt, Image.open(gekozen_foto)])
             st.session_state["laatste_recept"] = res.text
+            
     if "laatste_recept" in st.session_state:
-        t = st.session_state["laatste_recept"]
-        try:
-            j = "{" + t.split("{")[-1].split("}")[0] + "}"
-            d = json.loads(j)
-            t = t.replace(j, "").replace("```json", "").replace("
+        tekst = st.session_state["laatste_recept"]
+        data = parse_json_veilig(tekst)
+        
+        # Schoon het antwoord op van de JSON-codeblokken als die onderaan staan
+        leesbare_tekst = re.sub(r'\{.*\}', '', tekst, flags=re.DOTALL).strip()
+        st.markdown(leesbare_tekst)
+        
+        if data and data.get("boodschappen"):
+            ontbrekende_items = data["boodschappen"]
+            st.info(f"🛒 **Ontbrekende ingrediënten:** {', '.join(ontbrekende_items)}")
+            if st.button("➕ Voeg ontbrekende ingrediënten toe aan Boodschappenlijst"):
+                for item in ontbrekende_items: 
+                    voeg_boodschap_toe(item)
+                st.success("Ingrediënten toegevoegd aan je boodschappenlijst!")
+
+
+# ==========================================
+# SUBPAGINA: KASSABON SCANNER
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Kassabon Scanner":
+    if st.button("🔙 Terug naar Home"): ga_naar("Home")
+    
+    st.markdown("### 🧾 Kassabon Scanner")
+    camera_bon = st.camera_input("📸 Maak direct een foto van je bon")
+    uploaded_bon = st.file_uploader("Of upload je bon", type=["jpg", "png", "jpeg"])
+    gekozen_bon = camera_bon if camera_bon is not None else uploaded_bon
+    
+    if st.button("Scan Kassabon", type="primary") and gekozen_bon:
+        with st.spinner("Kassabon analyseren..."):
+            res = client.models.generate_content(model='gemini-2.5-flash', contents=[f"{GEZIN_CONTEXT} Vat deze bon overzichtelijk samen. Noem de winkel, het totaalbedrag en de opvallendste producten.", Image.open(gekozen_bon)])
+            st.markdown(res.text)
+
+
+# ==========================================
+# SUBPAGINA: KIDS VERHAALTJE
+# ==========================================
+elif st.session_state["huidige_pagina"] == "Kids":
+    if st.button("🔙 Terug naar Home"): ga_naar("Home")
+    
+    st.markdown("### 🧸 Boris Vertelt...")
+    if 'laatste_verhaaltje' in st.session_state:
+        base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
+        IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
+        
+        st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="{IMAGE_SRC}" id="Boris-kids-img" style="width: 140px; height: 140px; border-radius:50%; object-fit:cover; border: 3px solid #4CAF50;">
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.success(st.session_state['laatste_verhaaltje'])
+        st.components.v1.html(genereer_tts_script(st.session_state['laatste_verhaaltje'], "🔊 Voorlezen aan Tygo & Duen", "Boris-kids-img"), height=55)
+        
+        if st.button("🔄 Nog een verhaaltje!"):
+            with st.spinner("Boris verzint een nieuw avontuur..."):
+                prompt = f"{GEZIN_CONTEXT} Vertel een nieuw heel kort, grappig verhaaltje (max 4 zinnen). Richt je tot peuter Tygo en baby Duen."
+                response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+                st.session_state['laatste_verhaaltje'] = response.text
+                st.rerun()
