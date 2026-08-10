@@ -214,7 +214,8 @@ if st.session_state["huidige_pagina"] == "Home":
             ga_naar("Chat")
 
     with c2:
-        if st.button(f"🛒 **Lijst**\n\n{aantal_boodschappen} items", key="btn_boodschappen", use_container_width=True):
+        # Aangepast van "Lijst" naar "Boodschappenlijst"
+        if st.button(f"🛒 **Boodschappen**\n\n{aantal_boodschappen} items", key="btn_boodschappen", use_container_width=True):
             ga_naar("Boodschappenlijst")
 
     with c3:
@@ -312,8 +313,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
                 if datum_str == vandaag_str: cls += " vandaag"
                 if datum_str in agenda_dict: cls += " afspraak"
                 badge = f"<div class='cal-badge'>📌 {len(agenda_dict[datum_str])}</div>" if datum_str in agenda_dict else ""
-                html_cal += f"<div class='{cls}'>" \
-                            f"<span class='date'>{dag}</span>{badge}</div>"
+                html_cal += f"<div class='{cls}'><span class='date'>{dag}</span>{badge}</div>"
                 
     html_cal += "</div>"
     st.markdown(html_cal, unsafe_allow_html=True)
@@ -325,7 +325,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (UITGEBREID ASSORTIMENT)
+# SUBPAGINA: BOODSCHAPPENLIJST (MET PRIJZEN & ASSORTIMENT)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -333,64 +333,169 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "actieve_categorie" not in st.session_state:
         st.session_state["actieve_categorie"] = None
 
-    # Uitgebreide Nederlandse assortimentslijst per categorie
+    # Assortiment met geschatte indicatieprijzen voor NL (AH, Jumbo, Lidl)
     supermarkt_assortiment = {
         "Groente & Fruit": [
-            ("🍎", "Appels"), ("🍌", "Bananen"), ("🍐", "Peren"), ("🍊", "Sinaasappels"),
-            ("🍓", "Aardbeien"), ("🍇", "Druiven"), ("🥑", "Avocado"), ("🍋", "Citroen"),
-            ("🍅", "Tomaten"), ("🥒", "Komkommer"), ("🥕", "Wortels"), ("🥦", "Broccoli"),
-            ("🥬", "Sla / Rucola"), ("🧅", "Uien"), ("🧄", "Knoflook"), ("🍄", "Champignons"),
-            ("paprika", "Paprika"), ("bloemkool", "Bloemkool"), ("courgette", "Courgette"), ("aardappelen", "Aardappelen")
+            ("🍎", "Appels", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,89 (1kg)"), 
+            ("🍌", "Bananen", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,49 (1kg)"), 
+            ("🍐", "Peren", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (1kg)"), 
+            ("🍊", "Sinaasappels", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,79 (1.5kg)"),
+            ("🍓", "Aardbeien", "AH: €3,49 / Jumbo: €3,29 / Lidl: €2,99 (400g)"), 
+            ("🍇", "Druiven", "AH: €2,99 / Jumbo: €2,89 / Lidl: €2,49 (500g)"), 
+            ("🥑", "Avocado", "AH: €1,59 / Jumbo: €1,49 / Lidl: €1,29 (2 stuks)"), 
+            ("🍋", "Citroen", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,95 (netje)"),
+            ("🍅", "Tomaten", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,89 (500g)"), 
+            ("🥒", "Komkommer", "AH: €0,99 / Jumbo: €0,95 / Lidl: €0,79 (per stuk)"), 
+            ("🥕", "Wortels", "AH: €1,29 / Jumbo: €1,19 / Lidl: €0,99 (1kg)"), 
+            ("🥦", "Broccoli", "AH: €1,49 / Jumbo: €1,39 / Lidl: €1,19 (stronk)"),
+            ("🥬", "Sla / Rucola", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,39 (zak)"), 
+            ("🧅", "Uien", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (1kg)"), 
+            ("🧄", "Knoflook", "AH: €0,75 / Jumbo: €0,69 / Lidl: €0,59 (per stuk)"), 
+            ("🍄", "Champignons", "AH: €1,59 / Jumbo: €1,49 / Lidl: €1,29 (250g)"),
+            ("paprika", "Paprika", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (3-pack)"), 
+            ("bloemkool", "Bloemkool", "AH: €2,19 / Jumbo: €1,99 / Lidl: €1,79 (per stuk)"), 
+            ("courgette", "Courgette", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (per stuk)"), 
+            ("aardappelen", "Aardappelen", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (2.5kg)")
         ],
         "Zuivel & Eieren": [
-            ("🥛", "Halfvolle Melk"), ("🥛", "Volle Melk"), ("🧈", "Boter / Roomboter"),
-            ("🧀", "Jonge Kaas"), ("🧀", "Belegen Kaas"), ("🧀", "Geraspte Kaas"),
-            ("🥚", "Eieren"), ("🥣", "Griekse Yoghurt"), ("🥣", "Kwark"), ("🍮", "Vla / Pudding"),
-            ("🥛", "Koffiemelk"), ("🥛", "Slagroom"), ("🧀", "Hüttenkäse"), ("🧀", "Mozzarella")
+            ("🥛", "Halfvolle Melk", "AH: €1,15 / Jumbo: €1,12 / Lidl: €1,05 (1L)"), 
+            ("🥛", "Volle Melk", "AH: €1,19 / Jumbo: €1,15 / Lidl: €1,09 (1L)"), 
+            ("🧈", "Boter / Roomboter", "AH: €2,49 / Jumbo: €2,39 / Lidl: €2,19 (250g)"),
+            ("🧀", "Jonge Kaas", "AH: €7,99 / Jumbo: €7,79 / Lidl: €7,29 (700g blok)"), 
+            ("🧀", "Belegen Kaas", "AH: €8,49 / Jumbo: €8,29 / Lidl: €7,79 (700g blok)"), 
+            ("🧀", "Geraspte Kaas", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,89 (200g)"),
+            ("🥚", "Eieren", "AH: €2,89 / Jumbo: €2,79 / Lidl: €2,49 (10 stuks vrije uitloop)"), 
+            ("🥣", "Griekse Yoghurt", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,79 (1kg)"), 
+            ("🥣", "Kwark", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (500g)"), 
+            ("🍮", "Vla / Pudding", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (1L)"),
+            ("🥛", "Koffiemelk", "AH: €1,49 / Jumbo: €1,39 / Lidl: €1,19 (pak)"), 
+            ("🥛", "Slagroom", "AH: €1,29 / Jumbo: €1,19 / Lidl: €0,99 (250ml)"), 
+            ("🧀", "Hüttenkäse", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (200g)"), 
+            ("🧀", "Mozzarella", "AH: €0,89 / Jumbo: €0,85 / Lidl: €0,75 (bol)")
         ],
         "Brood & Beleg": [
-            ("🍞", "Witbrood"), ("🍞", "Bruinbrood"), ("🍞", "Tijgerbrood"), ("🥖", "Afbakbroodjes"),
-            ("🥐", "Croissants"), ("🍘", "Cracker / Riemen"), ("🍫", "Hagelslag"), ("🥜", "Pindakaas"),
-            ("🍯", "Jam"), ("🍫", "Chocopasta"), ("🥓", "Kipfilet (beleg)"), ("🧀", "Smeerkaas"), ("🥩", "Salami / Metworst")
+            ("🍞", "Witbrood", "AH: €1,59 / Jumbo: €1,49 / Lidl: €1,29 (heel)"), 
+            ("🍞", "Bruinbrood", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,39 (heel volkoren)"), 
+            ("🍞", "Tijgerbrood", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,59 (heel)"), 
+            ("🥖", "Afbakbroodjes", "AH: €0,99 / Jumbo: €0,89 / Lidl: €0,75 (4 stuks)"),
+            ("🥐", "Croissants", "AH: €1,49 / Jumbo: €1,39 / Lidl: €1,19 (4 stuks vers)"), 
+            ("🍘", "Cracker / Riemen", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (pak)"), 
+            ("🍫", "Hagelslag", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,79 (pak)"), 
+            ("🥜", "Pindakaas", "AH: €2,69 / Jumbo: €2,59 / Lidl: €2,29 (pot)"),
+            ("🍯", "Jam", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,79 (pot)"), 
+            ("🍫", "Chocopasta", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,89 (pot)"), 
+            ("🥓", "Kipfilet (beleg)", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (pakje)"), 
+            ("🧀", "Smeerkaas", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (kuipje)"), 
+            ("🥩", "Salami / Metworst", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,89 (pakje)")
         ],
         "Vlees, Kip & Vis": [
-            ("🥩", "Runder gehakt"), ("🍗", "Kipfilet"), ("🥩", "Biefstuk"), ("🍔", "Hamburgers"),
-            ("🥓", "Spekjes"), ("🐟", "Zalmfilet"), ("🐟", "Witte vis / Kabeljauw"), ("🦐", "Garnalen"),
-            ("🌭", "Knakworsten"), ("🥘", "Schnitzel"), ("🍖", "Worstjes"), ("🐟", "Tonijn (blik)")
+            ("🥩", "Runder gehakt", "AH: €4,99 / Jumbo: €4,89 / Lidl: €4,49 (500g)"), 
+            ("🍗", "Kipfilet", "AH: €5,49 / Jumbo: €5,29 / Lidl: €4,79 (400g)"), 
+            ("🥩", "Biefstuk", "AH: €4,29 / Jumbo: €3,99 / Lidl: €3,69 (per stuk)"), 
+            ("🍔", "Hamburgers", "AH: €3,29 / Jumbo: €3,09 / Lidl: €2,79 (4 stuks)"),
+            ("🥓", "Spekjes", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,49 (pakje)"), 
+            ("🐟", "Zalmfilet", "AH: €5,99 / Jumbo: €5,79 / Lidl: €5,19 (2 stuks)"), 
+            ("🐟", "Witte vis / Kabeljauw", "AH: €4,49 / Jumbo: €4,29 / Lidl: €3,89 (pakje)"), 
+            ("🦐", "Garnalen", "AH: €3,99 / Jumbo: €3,79 / Lidl: €3,49 (bakje)"),
+            ("🌭", "Knakworsten", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 blikje"), 
+            ("🥘", "Schnitzel", "AH: €3,49 / Jumbo: €3,29 / Lidl: €2,99 (2 stuks)"), 
+            ("🍖", "Worstjes", "AH: €3,19 / Jumbo: €2,99 / Lidl: €2,69 (pack)"), 
+            ("🐟", "Tonijn (blik)", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,49 (3-pack)")
         ],
         "Drinken": [
-            ("💧", "Mineraalwater"), ("🥤", "Cola / Frisdrank"), ("🧃", "Sinaasappelsap"), ("🧃", "Appelsap"),
-            ("🧃", "Pakjes drinken (Kids)"), ("☕", "Koffiebonen"), ("☕", "Filterkoffie"), ("🍵", "Thee"),
-            ("🍺", "Bier"), ("🍷", "Wijn"), ("🥛", "Chocomel"), ("🧊", "Ijsklontjes")
+            ("💧", "Mineraalwater", "AH: €0,65 / Jumbo: €0,60 / Lidl: €0,49 (1.5L)"), 
+            ("🥤", "Cola / Frisdrank", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,69 (1.5L A-merk/huismerk)"), 
+            ("🧃", "Sinaasappelsap", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (1L vers)"), 
+            ("🧃", "Appelsap", "AH: €1,59 / Jumbo: €1,49 / Lidl: €1,29 (1L)"),
+            ("🧃", "Pakjes drinken (Kids)", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (10-pack)"), 
+            ("☕", "Koffiebonen", "AH: €8,99 / Jumbo: €8,49 / Lidl: €7,49 (1kg)"), 
+            ("☕", "Filterkoffie", "AH: €4,29 / Jumbo: €4,09 / Lidl: €3,69 (500g)"), 
+            ("🍵", "Thee", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (pak 20 zakjes)"),
+            ("🍺", "Bier", "AH: €13,99 / Jumbo: €13,49 / Lidl: €11,99 (krat 24 flesjes)"), 
+            ("🍷", "Wijn", "AH: €5,99 / Jumbo: €5,49 / Lidl: €4,49 (fles)"), 
+            ("🥛", "Chocomel", "AH: €2,39 / Jumbo: €2,29 / Lidl: €1,99 (1L)"), 
+            ("🧊", "Ijsklontjes", "AH: €1,49 / Jumbo: €1,39 / Lidl: €1,19 (zak 2kg)")
         ],
         "Voorraad & Conserven": [
-            ("🍝", "Spaghetti / Pasta"), ("🍚", "Witte Rijst"), ("🍜", "Noodles"), ("🥫", "Tomatenpurée"),
-            ("🥫", "Pastasaus"), ("🥫", "Soep in blik"), ("🥣", "Bruine bonen"), ("🥣", "Doperwten (pot)"),
-            ("🌽", "Mais (blik)"), ("🥜", "Pinda's / Noten"), ("🍿", "Popcorn"), ("🍯", "Honing"),
-            ("🫒", "Olijfolie"), ("🌻", "Zonnebloemolie"), ("🌾", "Bloem"), ("🧂", "Suiker")
+            ("🍝", "Spaghetti / Pasta", "AH: €1,29 / Jumbo: €1,19 / Lidl: €0,99 (500g)"), 
+            ("🍚", "Witte Rijst", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,49 (1kg)"), 
+            ("🍜", "Noodles", "AH: €0,79 / Jumbo: €0,75 / Lidl: €0,59 (per stuk)"), 
+            ("🥫", "Tomatenpurée", "AH: €0,45 / Jumbo: €0,42 / Lidl: €0,35 (tubetje)"),
+            ("🥫", "Pastasaus", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (pot)"), 
+            ("🥫", "Soep in blik", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,79 (blik)"), 
+            ("🥣", "Bruine bonen", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (pot)"), 
+            ("🥣", "Doperwten (pot)", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (pot)"),
+            ("🌽", "Mais (blik)", "AH: €1,09 / Jumbo: €0,99 / Lidl: €0,85 (blikje)"), 
+            ("🥜", "Pinda's / Noten", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,89 (zakje)"), 
+            ("🍿", "Popcorn", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (zak)"), 
+            ("🍯", "Honing", "AH: €3,49 / Jumbo: €3,29 / Lidl: €2,89 (knijpfles)"),
+            ("🫒", "Olijfolie", "AH: €6,99 / Jumbo: €6,49 / Lidl: €5,79 (750ml)"), 
+            ("🌻", "Zonnebloemolie", "AH: €2,49 / Jumbo: €2,39 / Lidl: €2,09 (1L)"), 
+            ("🌾", "Bloem", "AH: €1,09 / Jumbo: €0,99 / Lidl: €0,85 (1kg)"), 
+            ("🧂", "Suiker", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,15 (1kg)")
         ],
         "Kruiden & Specerijen": [
-            ("🧂", "Zout"), ("🧂", "Peper"), ("🌿", "Paprikapoeder"), ("🌿", "Kerriepoeder"),
-            ("🌿", "Italiaanse Kruiden"), ("🧄", "Knoflookpoeder"), ("🌿", "Bouillonblokjes"), ("🥫", "Mayonaise"),
-            ("🍟", "Ketchup"), ("🟡", "Mosterd"), ("⚪", "Fritessaus"), ("🌶️", "Sambal"), ("🫙", "Sajoh / Sojasaus")
+            ("🧂", "Zout", "AH: €0,65 / Jumbo: €0,60 / Lidl: €0,49 (pak)"), 
+            ("🧂", "Peper", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,49 (strooier)"), 
+            ("🌿", "Paprikapoeder", "AH: €1,29 / Jumbo: €1,19 / Lidl: €0,99 (potje)"), 
+            ("🌿", "Kerriepoeder", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (potje)"),
+            ("🌿", "Italiaanse Kruiden", "AH: €1,49 / Jumbo: €1,39 / Lidl: €1,19 (potje)"), 
+            ("🧄", "Knoflookpoeder", "AH: €1,29 / Jumbo: €1,19 / Lidl: €0,99 (potje)"), 
+            ("🌿", "Bouillonblokjes", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (pakje)"), 
+            ("🥫", "Mayonaise", "AH: €2,29 / Jumbo: €2,19 / Lidl: €1,79 (tubes)"),
+            ("🍟", "Ketchup", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (knijpfles)"), 
+            ("🟡", "Mosterd", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (potje)"), 
+            ("⚪", "Fritessaus", "AH: €1,99 / Jumbo: €1,89 / Lidl: €1,59 (tubes)"), 
+            ("🌶️", "Sambal", "AH: €1,39 / Jumbo: €1,29 / Lidl: €1,09 (potje)"), 
+            ("🫙", "Sajoh / Sojasaus", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,79 (flesje)")
         ],
         "Snacks & Snoep": [
-            ("🥔", "Chips Naturel"), ("🌶️", "Chips Paprika"), ("🍪", "Koekjes / Sprits"), ("🍫", "Chocolade (Melk)"),
-            ("🍬", "Snoepjes"), ("🥞", "Pannenkoeken"), ("🧇", "Wafels"), ("🥨", "Zoute Stengels"), ("🍫", "Mueslirepen")
+            ("🥔", "Chips Naturel", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,29 (zak)"), 
+            ("🌶️", "Chips Paprika", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,29 (zak)"), 
+            ("🍪", "Koekjes / Sprits", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (pak)"), 
+            ("🍫", "Chocolade (Melk)", "AH: €2,19 / Jumbo: €2,09 / Lidl: €1,69 (reep A-merk/huismerk)"),
+            ("🍬", "Snoepjes", "AH: €1,49 / Jumbo: €1,39 / Lidl: €1,19 (zak)"), 
+            ("🥞", "Pannenkoeken", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,39 (pak kant-en-klaar)"), 
+            ("🧇", "Wafels", "AH: €1,69 / Jumbo: €1,59 / Lidl: €1,29 (pak)"), 
+            ("🥨", "Zoute Stengels", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (zak)"), 
+            ("🍫", "Mueslirepen", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (doosje)")
         ],
         "Huishouden & Schoonmaak": [
-            ("🧻", "Wc-papier"), ("🧻", "Keukenrol"), ("🧼", "Wasmiddel"), ("🧼", "Wasverzachter"),
-            ("🧽", "Sponzen"), ("🗑️", "Vuilniszakken"), ("🧽", "Allesreiniger"), ("🫧", "Afwasmiddel"),
-            ("🍽️", "Vaatwastabletten"), ("🧽", "Schuurspons"), ("🪟", "Glassex / Ruitenreiniger"), ("🧻", "Vochtig doekje")
+            ("🧻", "Wc-papier", "AH: €5,49 / Jumbo: €5,29 / Lidl: €4,49 (9 rollen)"), 
+            ("🧻", "Keukenrol", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (4 rollen)"), 
+            ("🧼", "Wasmiddel", "AH: €7,99 / Jumbo: €7,49 / Lidl: €6,49 (flacon)"), 
+            ("🧼", "Wasverzachter", "AH: €2,79 / Jumbo: €2,59 / Lidl: €2,19 (flacon)"),
+            ("🧽", "Sponzen", "AH: €1,39 / Jumbo: €1,29 / Lidl: €0,99 (pak)"), 
+            ("🗑️", "Vuilniszakken", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (rol)"), 
+            ("🧽", "Allesreiniger", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (fles)"), 
+            ("🫧", "Afwasmiddel", "AH: €1,99 / Jumbo: €1,89 / Lidl: €1,49 (fles)"),
+            ("🍽️", "Vaatwastabletten", "AH: €6,99 / Jumbo: €6,49 / Lidl: €5,49 (pak)"), 
+            ("🧽", "Schuurspons", "AH: €1,19 / Jumbo: €1,09 / Lidl: €0,89 (pak)"), 
+            ("🪟", "Glassex / Ruitenreiniger", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (spray)"), 
+            ("🧻", "Vochtig doekje", "AH: €1,89 / Jumbo: €1,79 / Lidl: €1,49 (pak)")
         ],
         "Drogisterij & Baby": [
-            ("👶", "Luiers (Maat 4/5)"), ("🧻", "Billendoekjes (Pampers)"), ("🧴", "Zinksalte / Billenzalf"),
-            ("🧴", "Babyshampoo"), ("🛁", "Badschuim (Kids)"), ("🦷", "Tandpasta"), ("🪥", "Tandenborstels"),
-            ("🧴", "Shampoo (Ouders)"), ("🧴", "Douchegel"), ("🧴", "Deodorant"), ("🩹", "Pleisters"), ("💊", "Paracetamol")
+            ("👶", "Luiers (Maat 4/5)", "Kruidvat: €14,99 / Etos: €15,99 / AH: €14,49 (mega pack)"), 
+            ("🧻", "Billendoekjes (Pampers)", "Kruidvat: €12,99 / Etos: €13,49 / Lidl: €9,99 (multipack)"), 
+            ("🧴", "Zinksalte / Billenzalf", "Kruidvat: €3,49 / Etos: €3,79 / Lidl: €2,79 (pot)"),
+            ("🧴", "Babyshampoo", "Kruidvat: €2,49 / Etos: €2,69 / Lidl: €1,99 (fles)"), 
+            ("🛁", "Badschuim (Kids)", "Kruidvat: €2,79 / Etos: €2,99 / Lidl: €2,19 (fles)"), 
+            ("🦷", "Tandpasta", "Kruidvat: €2,49 / Etos: €2,69 / Lidl: €1,79 (tube)"), 
+            ("🪥", "Tandenborstels", "Kruidvat: €3,19 / Etos: €3,49 / Lidl: €2,49 (2-pack)"),
+            ("🧴", "Shampoo (Ouders)", "Kruidvat: €3,99 / Etos: €4,29 / Lidl: €2,49 (fles)"), 
+            ("🧴", "Douchegel", "Kruidvat: €2,29 / Etos: €2,49 / Lidl: €1,69 (flacon)"), 
+            ("🧴", "Deodorant", "Kruidvat: €3,79 / Etos: €3,99 / Lidl: €2,79 (spray)"), 
+            ("🩹", "Pleisters", "Kruidvat: €2,49 / Etos: €2,69 / Lidl: €1,89 (doosje)"), 
+            ("💊", "Paracetamol", "Kruidvat: €1,69 / Etos: €1,89 / Lidl: €1,29 (50 stuks)")
         ],
         "Diepvries": [
-            ("🍟", "Diepvriesfriet"), ("🍕", "Diepvriespizza"), ("🍦", "IJsjes (Cornetto/Magnum)"),
-            ("🥦", "Diepvriesgroente"), ("🐟", "Vissticks"), ("🍲", "Snert / Soep (Diepvries)"), ("🍓", "Vruchten (Diepvries)")
+            ("🍟", "Diepvriesfriet", "AH: €2,39 / Jumbo: €2,29 / Lidl: €1,79 (1.5kg)"), 
+            ("🍕", "Diepvriespizza", "AH: €2,89 / Jumbo: €2,79 / Lidl: €2,19 (Dr. Oetker/huismerk)"), 
+            ("🍦", "IJsjes (Cornetto/Magnum)", "AH: €3,99 / Jumbo: €3,79 / Lidl: €2,99 (pak)"),
+            ("🥦", "Diepvriesgroente", "AH: €1,79 / Jumbo: €1,69 / Lidl: €1,39 (zak 750g)"), 
+            ("🐟", "Vissticks", "AH: €2,49 / Jumbo: €2,39 / Lidl: €1,99 (10 stuks)"), 
+            ("🍲", "Snert / Soep (Diepvries)", "AH: €2,99 / Jumbo: €2,79 / Lidl: €2,29 (bak)"), 
+            ("🍓", "Vruchten (Diepvries)", "AH: €3,29 / Jumbo: €3,09 / Lidl: €2,69 (250g)")
         ]
     }
 
@@ -439,7 +544,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                         st.session_state["actieve_categorie"] = naam
                         st.rerun()
         else:
-            # Sub-tegels tonen voor de gekozen categorie
             col_terug, col_titel_cat = st.columns([1, 3])
             with col_terug:
                 if st.button("⬅️ Terug"):
@@ -449,17 +553,21 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 st.markdown(f"#### {actieve_cat}")
             
             items = supermarkt_assortiment.get(actieve_cat, [])
-            sc1, sc2, sc3 = st.columns(3)
             
-            for i, (icoon, subitem) in enumerate(items):
-                col_target = [sc1, sc2, sc3][i % 3]
-                with col_target:
-                    # Als icoon een emoji is, tonen we dat, anders een standaard winkelmandje
-                    display_icoon = icoon if len(icoon) <= 2 else "🛒"
-                    if st.button(f"{display_icoon}\n\n{subitem}", key=f"sub_{actieve_cat}_{i}", use_container_width=True):
-                        voeg_boodschap_toe(subitem)
-                        st.success(f"'{subitem}' toegevoegd!")
-                        st.rerun()
+            # We tonen nu per item een net kaartje met de prijzen erbij en een knop om toe te voegen
+            for i, (icoon, subitem, prijzen_info) in enumerate(items):
+                with st.container():
+                    col_info, col_knop = st.columns([3, 1])
+                    with col_info:
+                        display_icoon = icoon if len(icoon) <= 2 else "🛒"
+                        st.markdown(f"**{display_icoon} {subitem}**")
+                        st.markdown(f"<p style='font-size: 0.8rem; color: #555; margin-top: -10px;'>{prijzen_info}</p>", unsafe_allow_html=True)
+                    with col_knop:
+                        if st.button("➕ Zet op lijst", key=f"sub_btn_{actieve_cat}_{i}", use_container_width=True):
+                            voeg_boodschap_toe(subitem)
+                            st.success(f"Toegevoegd!")
+                            st.rerun()
+                    st.markdown("<hr style='margin: 5px 0px; border-color: #eee;'>", unsafe_allow_html=True)
 
 elif st.session_state["huidige_pagina"] == "Chat":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
