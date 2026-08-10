@@ -318,7 +318,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (HELE TEGEL IS TOEVOEGEN KNOP)
+# SUBPAGINA: BOODSCHAPPENLIJST (KASSA TEGEL STIJL & PRIJS BIJ KLIK)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -326,139 +326,145 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "actieve_categorie" not in st.session_state:
         st.session_state["actieve_categorie"] = None
 
+    if "geselecteerd_product" not in st.session_state:
+        st.session_state["geselecteerd_product"] = None
+
+    # Schone productnamen zonder specificaties (zoals gewicht/aantal), prijzen per supermarkt zitten apart
     supermarkt_assortiment = {
-        "Fruits & Vegetables": [
-            ("🍎", "Elstar Appels (1kg)", "AH: €2,29 / Jumbo: €2,19"),
-            ("🍎", "Gala Appels (los/zak)", "AH: €2,49 / Jumbo: €2,39"),
-            ("🍌", "Bananen (1kg)", "AH: €1,79 / Jumbo: €1,69"),
-            ("🍐", "Conference Peren (1kg)", "AH: €2,49 / Jumbo: €2,39"),
-            ("🍊", "Sinaasappels (1.5kg)", "AH: €2,19 / Jumbo: €2,09"),
-            ("🍓", "Aardbeien (400g)", "AH: €3,49 / Jumbo: €3,29"),
-            ("🍇", "Pitloze Witte Druiven (500g)", "AH: €2,99 / Jumbo: €2,89"),
-            ("🥑", "Avocado Eetrijp (2 stuks)", "AH: €1,59 / Jumbo: €1,49"),
-            ("🍅", "Cherry Tomaten (250g)", "AH: €1,69 / Jumbo: €1,59"),
-            ("🥒", "Komkommer", "AH: €0,99 / Jumbo: €0,95"),
-            ("🥕", "Bospeen (1kg)", "AH: €1,29 / Jumbo: €1,19"),
-            ("🥦", "Broccoli (stronk)", "AH: €1,49 / Jumbo: €1,39"),
-            ("🧅", "Witte Uien (1kg)", "AH: €1,39 / Jumbo: €1,29"),
-            ("🧄", "Knoflook (netje)", "AH: €0,75 / Jumbo: €0,69"),
-            ("🫑", "Paprika Mix (3 stuks)", "AH: €1,89 / Jumbo: €1,79")
+        "Groente & Fruit": [
+            ("🍎", "Appels Elstar", {"AH": "€2,29", "Jumbo": "€2,19"}),
+            ("🍎", "Appels Gala", {"AH": "€2,49", "Jumbo": "€2,39"}),
+            ("🍌", "Bananen", {"AH": "€1,79", "Jumbo": "€1,69"}),
+            ("🍐", "Peren Conference", {"AH": "€2,49", "Jumbo": "€2,39"}),
+            ("🍊", "Sinaasappels", {"AH": "€2,19", "Jumbo": "€2,09"}),
+            ("🍓", "Aardbeien", {"AH": "€3,49", "Jumbo": "€3,29"}),
+            ("🍇", "Witte Druiven", {"AH": "€2,99", "Jumbo": "€2,89"}),
+            ("🥑", "Avocado", {"AH": "€1,59", "Jumbo": "€1,49"}),
+            ("🍅", "Cherry Tomaten", {"AH": "€1,69", "Jumbo": "€1,59"}),
+            ("🥒", "Komkommer", {"AH": "€0,99", "Jumbo": "€0,95"}),
+            ("🥕", "Bospeen", {"AH": "€1,29", "Jumbo": "€1,19"}),
+            ("🥦", "Broccoli", {"AH": "€1,49", "Jumbo": "€1,39"}),
+            ("🧅", "Witte Uien", {"AH": "€1,39", "Jumbo": "€1,29"}),
+            ("🧄", "Knoflook", {"AH": "€0,75", "Jumbo": "€0,69"}),
+            ("🫑", "Paprika Mix", {"AH": "€1,89", "Jumbo": "€1,79"})
         ],
-        "Dairy": [
-            ("🥛", "Halfvolle Melk (1L)", "AH: €1,15 / Jumbo: €1,12"),
-            ("🥛", "Volle Melk (1L)", "AH: €1,19 / Jumbo: €1,15"),
-            ("🧈", "Roomboter (250g)", "AH: €2,49 / Jumbo: €2,39"),
-            ("🧀", "Jonge Kaas 48+ (blok)", "AH: €7,99 / Jumbo: €7,79"),
-            ("🧀", "Belegen Kaas 48+ (blok)", "AH: €8,49 / Jumbo: €8,29"),
-            ("🥚", "Scharreleieren (10st)", "AH: €2,89 / Jumbo: €2,79"),
-            ("🥣", "Griekse Yoghurt (1kg)", "AH: €2,19 / Jumbo: €2,09"),
-            ("🥣", "Magere Kwark (500g)", "AH: €1,89 / Jumbo: €1,79"),
-            ("🍮", "Vanillevla (1L)", "AH: €1,39 / Jumbo: €1,29"),
-            ("🧀", "Mozzarella (bol)", "AH: €0,89 / Jumbo: €0,85")
+        "Zuivel & Eieren": [
+            ("🥛", "Halfvolle Melk", {"AH": "€1,15", "Jumbo": "€1,12"}),
+            ("🥛", "Volle Melk", {"AH": "€1,19", "Jumbo": "€1,15"}),
+            ("🧈", "Roomboter", {"AH": "€2,49", "Jumbo": "€2,39"}),
+            ("🧀", "Jonge Kaas", {"AH": "€7,99", "Jumbo": "€7,79"}),
+            ("🧀", "Belegen Kaas", {"AH": "€8,49", "Jumbo": "€8,29"}),
+            ("🥚", "Scharreleieren", {"AH": "€2,89", "Jumbo": "€2,79"}),
+            ("🥣", "Griekse Yoghurt", {"AH": "€2,19", "Jumbo": "€2,09"}),
+            ("🥣", "Magere Kwark", {"AH": "€1,89", "Jumbo": "€1,79"}),
+            ("🍮", "Vanillevla", {"AH": "€1,39", "Jumbo": "€1,29"}),
+            ("🧀", "Mozzarella", {"AH": "€0,89", "Jumbo": "€0,85"})
         ],
-        "Bread & Bakery": [
-            ("🍞", "Witbrood (Heel)", "AH: €1,59 / Jumbo: €1,49"),
-            ("🍞", "Volkoren Brood (Heel)", "AH: €1,69 / Jumbo: €1,59"),
-            ("🍞", "Tijgerbruin Brood", "AH: €1,89 / Jumbo: €1,79"),
-            ("🥖", "Afbak Pistolets (4 stuks)", "AH: €0,99 / Jumbo: €0,89"),
-            ("🥐", "Croissants (Vers 4-pack)", "AH: €1,49 / Jumbo: €1,39"),
-            ("🍫", "Hagelslag Melk", "AH: €2,19 / Jumbo: €2,09"),
-            ("🥜", "Pindakaas (Calvé pot)", "AH: €2,69 / Jumbo: €2,59"),
-            ("🍯", "Aardbeienjam", "AH: €2,19 / Jumbo: €2,09")
+        "Brood & Beleg": [
+            ("🍞", "Witbrood", {"AH": "€1,59", "Jumbo": "€1,49"}),
+            ("🍞", "Volkoren Brood", {"AH": "€1,69", "Jumbo": "€1,59"}),
+            ("🍞", "Tijgerbruin Brood", {"AH": "€1,89", "Jumbo": "€1,79"}),
+            ("🥖", "Afbak Pistolets", {"AH": "€0,99", "Jumbo": "€0,89"}),
+            ("🥐", "Croissants", {"AH": "€1,49", "Jumbo": "€1,39"}),
+            ("🍫", "Hagelslag Melk", {"AH": "€2,19", "Jumbo": "€2,09"}),
+            ("🥜", "Pindakaas", {"AH": "€2,69", "Jumbo": "€2,59"}),
+            ("🍯", "Aardbeienjam", {"AH": "€2,19", "Jumbo": "€2,09"})
         ],
-        "Meat & Fish": [
-            ("🥩", "Rundergehakt (500g)", "AH: €4,99 / Jumbo: €4,89"),
-            ("🍗", "Kipfilet (400g)", "AH: €5,49 / Jumbo: €5,29"),
-            ("🍗", "Kippendijen (400g)", "AH: €5,89 / Jumbo: €5,69"),
-            ("🍔", "Runderhamburgers (4 stuks)", "AH: €3,29 / Jumbo: €3,09"),
-            ("🥓", "Spekblokjes", "AH: €1,79 / Jumbo: €1,69"),
-            ("🐟", "Zalmfilet (2 stuks)", "AH: €5,99 / Jumbo: €5,79"),
-            ("🐟", "Tonijn in blik (3-pack)", "AH: €3,49 / Jumbo: €3,29")
+        "Vlees & Vis": [
+            ("🥩", "Rundergehakt", {"AH": "€4,99", "Jumbo": "€4,89"}),
+            ("🍗", "Kipfilet", {"AH": "€5,49", "Jumbo": "€5,29"}),
+            ("🍗", "Kippendijen", {"AH": "€5,89", "Jumbo": "€5,69"}),
+            ("🍔", "Runderhamburgers", {"AH": "€3,29", "Jumbo": "€3,09"}),
+            ("🥓", "Spekblokjes", {"AH": "€1,79", "Jumbo": "€1,69"}),
+            ("🐟", "Zalmfilet", {"AH": "€5,99", "Jumbo": "€5,79"}),
+            ("🐟", "Tonijn in blik", {"AH": "€3,49", "Jumbo": "€3,29"})
         ],
-        "Drink": [
-            ("💧", "Mineraalwater (1.5L)", "AH: €0,65 / Jumbo: €0,60"),
-            ("🥤", "Coca-Cola / Zero (1.5L)", "AH: €2,49 / Jumbo: €2,39"),
-            ("🧃", "Sinaasappelsap vers (1L)", "AH: €2,19 / Jumbo: €2,09"),
-            ("☕", "Koffiebonen (1kg)", "AH: €13,99 / Jumbo: €12,99"),
-            ("☕", "Filterkoffie (500g)", "AH: €4,29 / Jumbo: €4,09"),
-            ("🍵", "Thee (Groene thee)", "AH: €1,89 / Jumbo: €1,79"),
-            ("🍺", "Bier krat (Heineken 24st)", "AH: €15,99 / Jumbo: €15,49")
+        "Dranken": [
+            ("💧", "Mineraalwater", {"AH": "€0,65", "Jumbo": "€0,60"}),
+            ("🥤", "Coca-Cola / Zero", {"AH": "€2,49", "Jumbo": "€2,39"}),
+            ("🧃", "Sinaasappelsap", {"AH": "€2,19", "Jumbo": "€2,09"}),
+            ("☕", "Koffiebonen", {"AH": "€13,99", "Jumbo": "€12,99"}),
+            ("☕", "Filterkoffie", {"AH": "€4,29", "Jumbo": "€4,09"}),
+            ("🍵", "Groene Thee", {"AH": "€1,89", "Jumbo": "€1,79"}),
+            ("🍺", "Bier Krat", {"AH": "€15,99", "Jumbo": "€15,49"})
         ],
-        "Canned Goods": [
-            ("🍝", "Spaghetti (500g)", "AH: €1,29 / Jumbo: €1,19"),
-            ("🍝", "Macaroni / Penne (500g)", "AH: €1,29 / Jumbo: €1,19"),
-            ("🍚", "Witte Rijst (1kg)", "AH: €1,79 / Jumbo: €1,69"),
-            ("🥫", "Pastasaus / Bolognese", "AH: €1,89 / Jumbo: €1,79"),
-            ("🥫", "Groentesoep (blik)", "AH: €2,19 / Jumbo: €2,09"),
-            ("🥣", "Bruine Bonen (pot)", "AH: €1,19 / Jumbo: €1,09"),
-            ("🌽", "Mais (blikje)", "AH: €1,09 / Jumbo: €0,99")
+        "Voorraadkast": [
+            ("🍝", "Spaghetti", {"AH": "€1,29", "Jumbo": "€1,19"}),
+            ("🍝", "Macaroni / Penne", {"AH": "€1,29", "Jumbo": "€1,19"}),
+            ("🍚", "Witte Rijst", {"AH": "€1,79", "Jumbo": "€1,69"}),
+            ("🥫", "Pastasaus", {"AH": "€1,89", "Jumbo": "€1,79"}),
+            ("🥫", "Groentesoep", {"AH": "€2,19", "Jumbo": "€2,09"}),
+            ("🥣", "Bruine Bonen", {"AH": "€1,19", "Jumbo": "€1,09"}),
+            ("🌽", "Mais", {"AH": "€1,09", "Jumbo": "€0,99"})
         ],
-        "Condiments & Spices": [
-            ("🧂", "Zeezout", "AH: €0,65 / Jumbo: €0,60"),
-            ("🧂", "Zwarte Peper (molen)", "AH: €1,79 / Jumbo: €1,69"),
-            ("🌿", "Paprikapoeder", "AH: €1,29 / Jumbo: €1,19"),
-            ("🌿", "Bouillonblokjes", "AH: €1,19 / Jumbo: €1,09"),
-            ("🥫", "Mayonaise (tube)", "AH: €2,29 / Jumbo: €2,19"),
-            ("🍟", "Tomatenketchup", "AH: €1,89 / Jumbo: €1,79")
+        "Kruiden & Sauzen": [
+            ("🧂", "Zeezout", {"AH": "€0,65", "Jumbo": "€0,60"}),
+            ("🧂", "Zwarte Peper", {"AH": "€1,79", "Jumbo": "€1,69"}),
+            ("🌿", "Paprikapoeder", {"AH": "€1,29", "Jumbo": "€1,19"}),
+            ("🌿", "Bouillonblokjes", "AH": "€1,19", "Jumbo": "€1,09"}),
+            ("🥫", "Mayonaise", {"AH": "€2,29", "Jumbo": "€2,19"}),
+            ("🍟", "Tomatenketchup", {"AH": "€1,89", "Jumbo": "€1,79"})
         ],
         "Snacks": [
-            ("🥔", "Ribbelchips Naturel", "AH: €1,69 / Jumbo: €1,59"),
-            ("🌶️", "Paprika Chips", "AH: €1,69 / Jumbo: €1,59"),
-            ("🍪", "Room boterkoekjes", "AH: €1,89 / Jumbo: €1,79"),
-            ("🍫", "Chocoladereep Melk", "AH: €2,49 / Jumbo: €2,39"),
-            ("🥞", "Pannenkoeken", "AH: €1,79 / Jumbo: €1,69"),
-            ("🧇", "Stroopwafels (10st)", "AH: €1,89 / Jumbo: €1,79")
+            ("🥔", "Ribbelchips Naturel", {"AH": "€1,69", "Jumbo": "€1,59"}),
+            ("🌶️", "Paprika Chips", {"AH": "€1,69", "Jumbo": "€1,59"}),
+            ("🍪", "Room Boterkoekjes", {"AH": "€1,89", "Jumbo": "€1,79"}),
+            ("🍫", "Chocoladereep Melk", {"AH": "€2,49", "Jumbo": "€2,39"}),
+            ("🥞", "Pannenkoeken", {"AH": "€1,79", "Jumbo": "€1,69"}),
+            ("🧇", "Stroopwafels", {"AH": "€1,89", "Jumbo": "€1,79"})
         ],
-        "Household & Cleaning": [
-            ("🧻", "Toiletpapier (9 rollen)", "AH: €5,49 / Jumbo: €5,29"),
-            ("🧻", "Keukenpapier (4 rollen)", "AH: €2,49 / Jumbo: €2,39"),
-            ("🧼", "Wasmiddel Vloeibaar", "AH: €7,99 / Jumbo: €7,49"),
-            ("🧽", "Vaatdoekjes", "AH: €1,39 / Jumbo: €1,29"),
-            ("🗑️", "Vuilniszakken", "AH: €2,49 / Jumbo: €2,39"),
-            ("🫧", "Afwasmiddel", "AH: €1,99 / Jumbo: €1,89")
+        "Huishouden & Schoonmaak": [
+            ("🧻", "Toiletpapier", {"AH": "€5,49", "Jumbo": "€5,29"}),
+            ("🧻", "Keukenpapier", {"AH": "€2,49", "Jumbo": "€2,39"}),
+            ("🧼", "Wasmiddel Vloeibaar", {"AH": "€7,99", "Jumbo": "€7,49"}),
+            ("🧽", "Vaatdoekjes", {"AH": "€1,39", "Jumbo": "€1,29"}),
+            ("🗑️", "Vuilniszakken", {"AH": "€2,49", "Jumbo": "€2,39"}),
+            ("🫧", "Afwasmiddel", "AH: €1,99", "Jumbo": "€1,89"})
         ],
-        "Health Care": [
-            ("👶", "Pampers Luiers Mega", "Kruidvat: €14,99 / AH: €14,49"),
-            ("🧻", "Billendoekjes (Multipack)", "Kruidvat: €12,99 / Lidl: €9,99"),
-            ("🧴", "Sudocrem Billenzalf", "Kruidvat: €4,49 / Etos: €4,79"),
-            ("🧴", "Zwitsal Badschuim", "Kruidvat: €3,29 / AH: €2,99"),
-            ("🦷", "Tandpasta", "Kruidvat: €2,49 / AH: €2,29"),
-            ("💊", "Paracetamol 500mg", "Kruidvat: €1,69 / AH: €1,49")
+        "Drogisterij & Baby": [
+            ("👶", "Pampers Luiers", {"Kruidvat": "€14,99", "AH": "€14,49"}),
+            ("🧻", "Billendoekjes", {"Kruidvat": "€12,99", "Lidl": "€9,99"}),
+            ("🧴", "Sudocrem Billenzalf", {"Kruidvat": "€4,49", "Etos": "€4,79"}),
+            ("🧴", "Zwitsal Badschuim", {"Kruidvat": "€3,29", "AH": "€2,99"}),
+            ("🦷", "Tandpasta", {"Kruidvat": "€2,49", "AH": "€2,29"}),
+            ("💊", "Paracetamol 500mg", {"Kruidvat": "€1,69", "AH": "€1,49"})
         ],
-        "Baking": [
-            ("🧁", "Cupcake / Bakmix", "AH: €1,99 / Jumbo: €1,89"),
-            ("🌾", "Tarwebloem (1kg)", "AH: €1,09 / Jumbo: €0,99"),
-            ("🧂", "Kristalsuiker (1kg)", "AH: €1,39 / Jumbo: €1,29"),
-            ("🥣", "Havermout (500g)", "AH: €1,29 / Jumbo: €1,19")
+        "Bakken": [
+            ("🧁", "Cupcake / Bakmix", {"AH": "€1,99", "Jumbo": "€1,89"}),
+            ("🌾", "Tarwebloem", {"AH": "€1,09", "Jumbo": "€0,99"}),
+            ("🧂", "Kristalsuiker", {"AH": "€1,39", "Jumbo": "€1,29"}),
+            ("🥣", "Havermout", {"AH": "€1,29", "Jumbo": "€1,19"})
         ]
     }
 
-    # Styling om Streamlit knoppen om te toveren tot dikke visuele tegels (raster van 3 breed)
+    # Strakke kassa-tegel styling (compact, vierkant, strakke randen zoals op een winkelkassa)
     st.markdown("""
         <style>
         .stButton > button {
             width: 100%;
-            min-height: 110px !important;
+            height: 95px !important;
             white-space: pre-wrap !important;
-            border-radius: 16px !important;
+            border-radius: 12px !important;
             border: 1px solid #333333 !important;
-            background-color: #1a1a1a !important;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: all 0.2s ease-in-out;
-            font-size: 1rem !important;
+            background-color: #1f1f1f !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.1s ease-in-out;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
             color: #ffffff !important;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            line-height: 1.3;
+            line-height: 1.2;
+            padding: 5px !important;
         }
         
         .stButton > button:hover, .stButton > button:active {
             border-color: #4CAF50 !important;
             color: #4CAF50 !important;
-            background-color: #222222 !important;
-            transform: scale(0.98);
+            background-color: #282828 !important;
+            transform: scale(0.97);
         }
         </style>
     """, unsafe_allow_html=True)
@@ -496,27 +502,56 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
 
     with col_tegels:
         actieve_cat = st.session_state["actieve_categorie"]
+        geselecteerd_prod = st.session_state["geselecteerd_product"]
         
-        if actieve_cat is None:
+        # Als er een specifiek product is aangeklikt om prijzen per winkel te bekijken:
+        if geselecteerd_prod is not None:
+            prod_naam, prijzen_dict = geselecteerd_prod
+            
+            col_terug_prod, col_titel_prod = st.columns([1, 3])
+            with col_terug_prod:
+                if st.button("⬅️ Terug", key="terug_naar_producten"):
+                    st.session_state["geselecteerd_product"] = None
+                    st.rerun()
+            with col_titel_prod:
+                st.markdown(f"#### 🏷️ Prijzen: {prod_naam}")
+                
+            st.markdown("<p style='color: #aaa; font-size: 0.9rem;'>Vergelijk de prijzen of voeg direct toe aan je lijstje:</p>", unsafe_allow_html=True)
+            
+            # Toon knoppen per winkel met prijs, en een knop om direct toe te voegen
+            cols_prijs = st.columns(len(prijzen_dict))
+            for i, (winkel, prijs) in enumerate(prijzen_dict.items()):
+                with cols_prijs[i % len(cols_prijs)]:
+                    if st.button(f"🏪 **{winkel}**\n\n{prijs}", key=f"winkel_prijs_{i}", use_container_width=True):
+                        voeg_boodschap_toe(prod_naam)
+                        st.success(f"'{prod_naam}' toegevoegd!")
+                        st.session_state["geselecteerd_product"] = None
+                        st.rerun()
+            
+            if st.button("➕ Voeg toe zonder winkelkeuze", use_container_width=True):
+                voeg_boodschap_toe(prod_naam)
+                st.success(f"'{prod_naam}' toegevoegd!")
+                st.session_state["geselecteerd_product"] = None
+                st.rerun()
+
+        elif actieve_cat is None:
             st.markdown("### 🗂️ Supermarkt Categorieën")
             
             hoofd_cats = [
                 ("🌟", "Eerder Gekozen"),
-                ("🥛", "Dairy"), 
-                ("🍎", "Fruits & Vegetables"), 
-                ("🥤", "Drink"),
-                ("🍞", "Bread & Bakery"), 
-                ("🥩", "Meat & Fish"), 
-                ("🥪", "Deli"),
+                ("🍎", "Groente & Fruit"), 
+                ("🥛", "Zuivel & Eieren"), 
+                ("🍞", "Brood & Beleg"),
+                ("🥩", "Vlees & Vis"), 
+                ("🥤", "Dranken"), 
+                ("🍝", "Voorraadkast"),
+                ("🧂", "Kruiden & Sauzen"), 
                 ("🥔", "Snacks"), 
-                ("🥫", "Canned Goods"), 
-                ("🌶️", "Condiments & Spices"),
-                ("🧁", "Baking"), 
-                ("🧼", "Household & Cleaning"), 
-                ("💊", "Health Care")
+                ("🧻", "Huishouden & Schoonmaak"),
+                ("👶", "Drogisterij & Baby"), 
+                ("🧁", "Bakken")
             ]
             
-            # Raster van 3 breed voor categorieën
             cols = st.columns(3)
             for i, (icoon, naam) in enumerate(hoofd_cats):
                 col_target = cols[i % 3]
@@ -540,27 +575,26 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 if not gesorteerde_historie:
                     st.info("Nog geen eerdere items opgeslagen! Voeg wat toe via categorieën of handmatig.")
                 else:
-                    # Raster van 3 breed voor historie items (gehele tegel is toevoegen)
                     cols = st.columns(3)
                     for i, (item_naam, count) in enumerate(gesorteerde_historie):
                         col_target = cols[i % 3]
                         with col_target:
-                            if st.button(f"⭐ {item_naam}\n\n(Al {count}x gekozen)", key=f"hist_btn_{i}", use_container_width=True):
+                            if st.button(f"⭐\n\n{item_naam}", key=f"hist_btn_{i}", use_container_width=True):
                                 voeg_boodschap_toe(item_naam)
                                 st.success(f"'{item_naam}' toegevoegd!")
                                 st.rerun()
             else:
                 items = supermarkt_assortiment.get(actieve_cat, [])
                 
-                # Raster van 3 breed voor producten (gehele tegel is toevoegen)
                 cols = st.columns(3)
-                for i, (icoon, subitem, prijzen_info) in enumerate(items):
+                for i, (icoon, subitem, prijzen_dict) in enumerate(items):
                     col_target = cols[i % 3]
                     with col_target:
                         display_icoon = icoon if len(icoon) <= 2 else "🛒"
-                        if st.button(f"{display_icoon} {subitem}\n\n🏷️ {prijzen_info}", key=f"sub_btn_{actieve_cat}_{i}", use_container_width=True):
-                            voeg_boodschap_toe(subitem)
-                            st.success(f"'{subitem}' toegevoegd!")
+                        # Kassa tegel toont alleen icoon en productnaam, met een klein subtiel ondertekstje voor actie
+                        if st.button(f"{display_icoon}\n\n{subitem}", key=f"sub_btn_{actieve_cat}_{i}", use_container_width=True):
+                            # Sla product op en open prijsweergave bij aanklikken van tegel
+                            st.session_state["geselecteerd_product"] = (subitem, prijzen_dict)
                             st.rerun()
 
 elif st.session_state["huidige_pagina"] == "Chat":
