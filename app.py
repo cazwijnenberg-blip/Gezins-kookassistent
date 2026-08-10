@@ -54,7 +54,7 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (AFDWINGEN VAN KOLOMMEN OP MOBIEL + COMPACTE TEGELS) ---
+# --- STYLING (SUPER COMPACTE TEGELS + 100% GROTERE PICTOGRAMMEN) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -64,7 +64,7 @@ st.markdown("""
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 6px !important;
+        gap: 4px !important;
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
@@ -72,23 +72,29 @@ st.markdown("""
         flex: 1 1 0px !important;
     }
 
-    /* Tegelknoppen Stijl (Compact voor 4x4 weergave) */
+    /* Tegelknoppen Stijl - Super Compact voor Mobiel Scherm */
     .stButton > button {
         width: 100% !important;
-        min-height: 65px !important; /* Compacter gemaakt tegen scrollen */
+        min-height: 48px !important; /* Teruggebracht van 65px voor direct mobiel overzicht */
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         border: 1px solid #D2E7D6 !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.8rem !important;
+        font-size: 0.72rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
-        padding: 4px 2px !important;
-        margin-bottom: 4px !important;
+        padding: 2px 1px !important;
+        margin-bottom: 2px !important;
         line-height: 1.1 !important;
+    }
+
+    /* Pictogrammen (eerste regel van tegelknoppen) 100% vergroten */
+    .stButton > button p::first-line {
+        font-size: 1.5rem !important; /* Dubbel zo groot pictogram */
+        line-height: 1.2 !important;
     }
 
     .stButton > button:hover, .stButton > button:active {
@@ -222,7 +228,7 @@ def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-mai
         window.speechSynthesis.cancel();
         let speech = new SpeechSynthesisUtterance(tekst);
         speech.lang = 'nl-NL'; 
-        speech.pitch = 1.6; /* Hoge pitch voor vrolijke kinderstem */
+        speech.pitch = 1.6;
         speech.rate = 1.05;
         let voices = window.speechSynthesis.getVoices();
         let nlVoice = voices.find(v => v.lang.includes('nl'));
@@ -242,7 +248,7 @@ def genereer_tts_script(tekst, knop_tekst="🎙️ Voorlezen", img_id="Boris-mai
 
 
 # ==========================================
-# HOOFDSCHERM (DASHBOARD)
+# HOOFDSCHERM (DASHBOARD - MOBIEL PASSTAAI)
 # ==========================================
 if st.session_state["huidige_pagina"] == "Home":
     vandaag_str = vandaag.strftime("%Y-%m-%d")
@@ -253,26 +259,26 @@ if st.session_state["huidige_pagina"] == "Home":
     with col_titel:
         st.markdown("### 🏠 Zwijnenberg")
     with col_datum:
-        st.markdown(f"<p style='text-align: right; font-size: 13px; color: #aaa; margin-top: 10px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: right; font-size: 12px; color: #aaa; margin-top: 5px;'>{vandaag.strftime('%d-%m-%Y')}</p>", unsafe_allow_html=True)
     
-    # Dwing strakke 2-koloms indeling af
+    # Dwing strakke 2-koloms indeling met compacter formaat af
     r1c1, r1c2 = st.columns(2)
     with r1c1:
-        if st.button("💬 Chat met Boris", use_container_width=True, key="btn_chat"): ga_naar("Chat")
+        if st.button("💬\nChat Boris", use_container_width=True, key="btn_chat"): ga_naar("Chat")
     with r1c2:
-        if st.button(f"📅 Agenda\n\n{aantal_afspraken_komend} gepland", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
+        if st.button(f"📅\nAgenda ({aantal_afspraken_komend})", use_container_width=True, key="btn_agenda"): ga_naar("Agenda")
 
     r2c1, r2c2 = st.columns(2)
     with r2c1:
-        if st.button(f"🛒 Boodschappen\n\n{aantal_boodschappen} items", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
+        if st.button(f"🛒\nLijstje ({aantal_boodschappen})", use_container_width=True, key="btn_boodschappen"): ga_naar("Boodschappenlijst")
     with r2c2:
-        if st.button("🔍 Recepten\n\nVoorraad check", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
+        if st.button("🔍\nRecepten", use_container_width=True, key="btn_recepten"): ga_naar("Recepten")
 
     r3c1, r3c2 = st.columns(2)
     with r3c1:
-        if st.button("🧾 Kassabon\n\nScanner", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
+        if st.button("🧾\nScanner", use_container_width=True, key="btn_bonnen"): ga_naar("Kassabon Scanner")
     with r3c2:
-        if st.button("🎵 Mini-Disco!\n\nTygo & Duén", use_container_width=True, key="btn_kids"): ga_naar("Kids")
+        if st.button("🎵\nMini-Disco", use_container_width=True, key="btn_kids"): ga_naar("Kids")
 
 
 # ==========================================
@@ -370,7 +376,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (4x4 RASTER LAYOUT)
+# SUBPAGINA: BOODSCHAPPENLIJST (GROTE PICTOGRAMMEN + 4x4 RASTER)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
@@ -433,7 +439,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     }
 
     # ----------------------------------------------------
-    # DEEL 1: CATEGORIEËN IN 4-KOLOMS RASTER (COMPACT)
+    # DEEL 1: CATEGORIEËN IN COMPACT 4-KOLOMS RASTER
     # ----------------------------------------------------
     st.markdown("#### 🗂️ Categorieën")
     
@@ -452,7 +458,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         sub_dict = supermarkt_database.get(hoofd_cat, {})
         
         if sub_cat is None:
-            # 4 Kolommen Raster voor Subcategorieën
             cols = st.columns(4)
             sub_namen = list(sub_dict.keys())
             for i, s_naam in enumerate(sub_namen):
@@ -470,7 +475,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             st.markdown(f"**🏷️ {sub_cat}**")
             producten = sub_dict.get(sub_cat, [])
             
-            # 4 Kolommen Raster voor Producten
             cols = st.columns(4)
             for i, (icoon, prod_naam) in enumerate(producten):
                 col_target = cols[i % 4]
@@ -493,7 +497,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
             "Non-Food": "🧻"
         }
         
-        # 4 Kolommen Raster (4x4 look) voor Hoofdcategorieën
         cols = st.columns(4)
         for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
             col_target = cols[i % 4]
@@ -581,7 +584,7 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     st.markdown("---")
 
     # ----------------------------------------------------
-    # DEEL 3: HET BOODSCHAPPENLIJSTJE (ONDERAAN)
+    # DEEL 3: HET BOODSCHAPPENLIJSTJE
     # ----------------------------------------------------
     st.markdown("#### 🛒 Mijn Lijstje")
     
@@ -746,7 +749,6 @@ elif st.session_state["huidige_pagina"] == "Kids":
         </div>
     """, unsafe_allow_html=True)
 
-    # Automatische kinderstem die de actie uitspreekt
     st.components.v1.html(genereer_tts_script(opdracht['tekst'], "🔊 Luister naar Boris", "Boris-dance-img", auto_play=True), height=45)
 
     st.markdown("---")
