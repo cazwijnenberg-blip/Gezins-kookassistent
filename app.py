@@ -217,7 +217,7 @@ if st.session_state["huidige_pagina"] == "Home":
         ("🎵", "Disco", "Kids")
     ]
 
-    # Strakke Android app grid via st.components.v1.html (zodat het nooit als platte tekst wordt getoond)
+    # Robuust Android-grid met JavaScript navigatie zodat knoppen altijd werken
     app_grid_html = """
     <!DOCTYPE html>
     <html>
@@ -245,7 +245,7 @@ if st.session_state["huidige_pagina"] == "Home":
         border: 1px solid #C4E0CC;
         border-radius: 12px;
         padding: 8px 2px;
-        text-decoration: none !important;
+        cursor: pointer;
         transition: transform 0.1s ease, background-color 0.1s ease;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         height: 68px;
@@ -271,6 +271,13 @@ if st.session_state["huidige_pagina"] == "Home":
         width: 100%;
     }
     </style>
+    <script>
+    function navTo(pagina) {
+        const url = new URL(window.top.location.href);
+        url.searchParams.set('pagina', pagina);
+        window.top.location.href = url.toString();
+    }
+    </script>
     </head>
     <body>
     <div class="android-app-grid">
@@ -278,10 +285,10 @@ if st.session_state["huidige_pagina"] == "Home":
     
     for icoon, tekst, pagina in dashboard_knoppen:
         app_grid_html += f"""
-        <a href="?pagina={pagina}" target="_top" class="app-tile">
+        <div class="app-tile" onclick="navTo('{pagina}')">
             <span class="app-icon">{icoon}</span>
             <span class="app-label">{tekst}</span>
-        </a>
+        </div>
         """
         
     app_grid_html += """
@@ -290,7 +297,6 @@ if st.session_state["huidige_pagina"] == "Home":
     </html>
     """
     
-    # Render component met een vaste hoogte die precies past voor 2 rijen app-tegels
     components.html(app_grid_html, height=155, scrolling=False)
 
 # ==========================================
