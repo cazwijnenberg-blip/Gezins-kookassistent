@@ -54,7 +54,7 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING (RESPONSIEF APPS-GRID) ---
+# --- STYLING (GEFORCEERD 4-KOLOMMS APP-GRID) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
@@ -72,10 +72,11 @@ st.markdown("""
         overflow-x: hidden !important;
     }
     
+    /* Forceer rijen en kolommen om ALTIJD 4 naast elkaar te blijven (geen automatische mobiele stapeling) */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: wrap !important;
+        flex-wrap: nowrap !important;
         gap: 4px !important;
         width: 100% !important;
         margin: 0 !important;
@@ -83,26 +84,26 @@ st.markdown("""
     }
     
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        flex: 1 1 25% !important;
         min-width: 0px !important;
-        flex: 1 1 0px !important;
-        max-width: 100% !important;
+        max-width: 25% !important;
     }
 
-    /* Strakke App-Tegels (Rastervorm) */
+    /* Strakke App-Tegels (Vierkant Raster) */
     .stButton > button {
         width: 100% !important;
-        height: 52px !important;
-        border-radius: 8px !important;
+        height: 56px !important;
+        border-radius: 10px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
         border: 1px solid #C4E0CC !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
         transition: transform 0.1s ease, background-color 0.1s ease !important;
-        font-size: 0.68rem !important;
+        font-size: 0.65rem !important;
         font-weight: 600 !important;
         text-align: center !important;
         padding: 2px !important;
-        margin-bottom: 3px !important;
+        margin-bottom: 4px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
@@ -114,7 +115,7 @@ st.markdown("""
     }
 
     .stButton > button p, .stButton > button div {
-        font-size: 0.7rem !important;
+        font-size: 0.68rem !important;
         margin: 0 !important;
         padding: 0 !important;
         white-space: nowrap !important;
@@ -446,7 +447,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (4x4 GRID)
+# SUBPAGINA: BOODSCHAPPENLIJST (4x4 APP GRID)
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "spraak_input" in st.query_params:
