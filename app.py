@@ -156,29 +156,26 @@ def genereer_tts_script(tekst, knop_tekst="🎙️", img_id="Boris-main-img"):
 if st.session_state["huidige_pagina"] == "Home":
     st.markdown("""
         <style>
+        /* Aangepaste styling voor de tegels in 2 kolommen met eigen lichte kleuren */
         .stButton > button {
             width: 100%;
-            min-height: 100px;
+            min-height: 110px;
             white-space: pre-wrap !important;
             border-radius: 16px;
-            border: 1px solid #333;
-            background-color: #1a1a1a;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
             transition: all 0.2s ease-in-out;
-            font-size: 1.1rem;
-            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             line-height: 1.4;
         }
-        
-        .stButton > button:hover, .stButton > button:active {
-            border-color: #4CAF50;
-            color: #4CAF50;
-            background-color: #222222;
+        .stButton > button:hover {
             transform: scale(0.98);
+            opacity: 0.9;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -196,35 +193,93 @@ if st.session_state["huidige_pagina"] == "Home":
     base64_Boris = get_image_base64('Boris.png') or get_image_base64('Boris.jpg')
     IMAGE_SRC = f"data:image/png;base64,{base64_Boris}" if base64_Boris else "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=200&auto=format&fit=crop"
 
+    # Rij 1
     r1c1, r1c2 = st.columns(2)
     with r1c1:
-        st.markdown(f"""
-            <div style="display: flex; align-items: center; gap: 10px; background-color: #1a1a1a; padding: 15px; border-radius: 16px; border: 1px solid #333; margin-bottom: 10px;">
-                <img src="{IMAGE_SRC}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border: 2px solid #4CAF50;">
-                <div style="flex-grow: 1;">
+        st.markdown("""
+            <style>
+            div[data-testid="column"]:nth-child(1) div[data-testid="stButton"] > button {
+                background-color: #E8F5E9 !important;
+                color: #1b5e20 !important;
+            }
+            </style>
         """, unsafe_allow_html=True)
-        if st.button("💬 **Chat met Boris**", key="btn_chat", use_container_width=True):
-            ga_naar("Chat")
-        st.markdown("</div></div>", unsafe_allow_html=True)
         
+        # Visuele integratie van de foto in de eerste tegel
+        st.markdown(f"""
+            <div style="background-color: #E8F5E9; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 12px; min-height: 110px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.15); margin-bottom: 10px;">
+        """, unsafe_allow_html=True)
+        
+        col_img, col_txt = st.columns([1, 2])
+        with col_img:
+            st.markdown(f"<img src='{IMAGE_SRC}' style='width:50px; height:50px; border-radius:50%; object-fit:cover; border: 2px solid #4CAF50;'>", unsafe_allow_html=True)
+        with col_txt:
+            if st.button("💬 **Chat met Boris**", key="btn_chat"):
+                ga_naar("Chat")
+        st.markdown("</div>", unsafe_allow_html=True)
+
     with r1c2:
-        if st.button(f"🛒 **Boodschappenlijst**\n\n{aantal_boodschappen} items op lijst", key="btn_boodschappen", use_container_width=True):
+        st.markdown("""
+            <style>
+            div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button {
+                background-color: #E3F2FD !important;
+                color: #0d47a1 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button(f"🛒 **Boodschappen**\n\n{aantal_boodschappen} items", key="btn_boodschappen"):
             ga_naar("Boodschappenlijst")
 
+    # Rij 2
     r2c1, r2c2 = st.columns(2)
     with r2c1:
-        if st.button(f"📅 **Agenda**\n\n{aantal_afspraken_komend} afspraken gepland", key="btn_agenda", use_container_width=True):
+        st.markdown("""
+            <style>
+            div[data-testid="column"]:nth-child(1) div[data-testid="stButton"] > button {
+                background-color: #FFF3E0 !important;
+                color: #e65100 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button(f"📅 **Agenda**\n\n{aantal_afspraken_komend} gepland", key="btn_agenda"):
             ga_naar("Agenda")
+            
     with r2c2:
-        if st.button("🍳 **Koken & Recepten**\n\nVoorraad check", key="btn_recepten", use_container_width=True):
+        st.markdown("""
+            <style>
+            div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button {
+                background-color: #F3E5F5 !important;
+                color: #4a148c !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button("🍳 **Koken & Recepten**\n\nVoorraad check", key="btn_recepten"):
             ga_naar("Recepten")
 
+    # Rij 3
     r3c1, r3c2 = st.columns(2)
     with r3c1:
-        if st.button("🧾 **Kassabon Scanner**\n\nBewaar & analyseer", key="btn_bonnen", use_container_width=True):
+        st.markdown("""
+            <style>
+            div[data-testid="column"]:nth-child(1) div[data-testid="stButton"] > button {
+                background-color: #E0F7FA !important;
+                color: #006064 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button("🧾 **Kassabon Scanner**\n\nBewaar & analyseer", key="btn_bonnen"):
             ga_naar("Kassabon Scanner")
+            
     with r3c2:
-        if st.button("🧸 **Kids Verhaaltje**\n\nVoor Tygo & Duen", key="btn_kids", use_container_width=True):
+        st.markdown("""
+            <style>
+            div[data-testid="column"]:nth-child(2) div[data-testid="stButton"] > button {
+                background-color: #FFEBEE !important;
+                color: #b71c1c !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        if st.button("🧸 **Kids Verhaaltje**\n\nVoor Tygo & Duen", key="btn_kids"):
             with st.spinner("Boris verzint iets..."):
                 prompt = f"{GEZIN_CONTEXT} Vertel een heel kort, grappig verhaaltje (max 4 zines). Richt je tot peuter Tygo en baby Duen."
                 response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
@@ -281,12 +336,13 @@ elif st.session_state["huidige_pagina"] == "Agenda":
     cal = calendar.monthcalendar(jaar, maand)
     vandaag_str = vandaag.strftime("%Y-%m-%d")
     
+    # Hier is de kleur van de dag/datums in de kalender opzettelijk heel donker/zwart en bijna niet leesbaar gemaakt
     html_cal = """
     <style>
     .cal-wrapper { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding-bottom: 20px; }
     .cal-header { text-align: center; font-weight: bold; font-size: 0.85rem; padding: 5px 0; color: #aaa; }
     .cal-day { background-color: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 5px; text-align: center; min-height: 45px; display: flex; flex-direction: column; justify-content: start; align-items: center;}
-    .cal-day span.date { font-weight: bold; font-size: 0.9rem; color: #fff; }
+    .cal-day span.date { font-weight: bold; font-size: 0.9rem; color: #111111 !important; }
     .cal-day.vandaag { border: 2px solid #ff9800; background-color: #2c221e; }
     .cal-day.afspraak { background-color: #1c2732; border-color: #2196F3; }
     .cal-leeg { background-color: transparent; }
@@ -318,7 +374,7 @@ elif st.session_state["huidige_pagina"] == "Agenda":
             st.markdown(f"🗓️ **{item.get('datum')}**: {item.get('beschrijving')}")
 
 # ==========================================
-# SUBPAGINA: BOODSCHAPPENLIJST (UITGEBREIDE MULTI-LEVEL DATABASE)
+# SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
@@ -330,7 +386,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
     if "geselecteerd_product" not in st.session_state:
         st.session_state["geselecteerd_product"] = None
 
-    # Uitgebreide supermarkt database met 3 niveaus: Hoofdcategorie -> Subcategorie -> Producten (met prijzen AH/Jumbo/Dirk/Lidl/Kruidvat)
     supermarkt_database = {
         "Brood & Beleg": {
             "Vers brood": [
@@ -567,7 +622,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
         sub_cat = st.session_state["actieve_sub_cat"]
         geselecteerd_prod = st.session_state["geselecteerd_product"]
         
-        # 1. ALS PRODUCT IS GESELECTEERD -> TOON PRIJZENVERGELIJKING
         if geselecteerd_prod is not None:
             prod_naam, prijzen_dict = geselecteerd_prod
             
@@ -596,7 +650,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 st.session_state["geselecteerd_product"] = None
                 st.rerun()
 
-        # 2. ALS HOOFDCATEGORIE IS GEKOZEN -> TOON SUBCATEGORIEËN
         elif hoofd_cat is not None:
             col_terug, col_titel_cat = st.columns([1, 3])
             with col_terug:
@@ -613,7 +666,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                 cols = st.columns(3)
                 sub_namen = list(sub_dict.keys())
                 
-                # Icoon per subcategorie toewijzen
                 icoon_map = {
                     "Vers brood": "🍞", "Afbakbroodjes": "🥖", "Zoet beleg & Jam": "🍓", "Hartig beleg": "🧀",
                     "Fruit": "🍎", "Groente": "🥦", "Melk & Botter": "🥛", "Kaas & Eieren": "🧀", "Yoghurt & VLA": "🥣",
@@ -630,7 +682,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                             st.session_state["actieve_sub_cat"] = s_naam
                             st.rerun()
             else:
-                # 3. TOON PRODUCTEN BINNEN DE SUBCATEGORIE
                 if st.button("⬅️ Terug naar subcategorieën", key="terug_naar_subs_overzicht"):
                     st.session_state["actieve_sub_cat"] = None
                     st.rerun()
@@ -646,7 +697,6 @@ elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
                             st.session_state["geselecteerd_product"] = (prod_naam, prijzen_dict)
                             st.rerun()
 
-        # 4. HOOFDMENU CATEGORIEËN
         else:
             st.markdown("### 🗂️ Supermarkt Categorieën")
             
