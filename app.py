@@ -53,27 +53,40 @@ def parse_json_veilig(tekst):
     except Exception:
         return None
 
-# --- STYLING EXACT ZOALS OP HET SCREENSHOT ---
+# --- STYLING (EXACT 2 KOLOMMEN AFDWINGEN OOK OP MOBIEL) ---
 st.markdown("""
     <style>
     [data-testid="collapsedControl"] { display: none; }
     
-    /* Universele stijl voor de tegelknoppen (Lichtgroen, afgerond, donkergroene tekst) */
+    /* Dwing 2 kolommen af op ELK scherm formaat (ook mobiel) */
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(2)) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 10px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(2)) > div[data-testid="column"] {
+        width: 50% !important;
+        min-width: 0px !important;
+        flex: 1 1 50% !important;
+    }
+
+    /* Tegelknoppen Stijl (Muntgroen, afgerond, donkergroen) */
     .stButton > button {
         width: 100% !important;
-        min-height: 110px !important;
+        min-height: 100px !important;
         background-color: #EBF5EE !important;
         color: #1B4D2E !important;
-        border-radius: 22px !important;
+        border-radius: 20px !important;
         border: 1px solid #D2E7D6 !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
         transition: transform 0.15s ease, background-color 0.15s ease !important;
-        font-size: 1.05rem !important;
+        font-size: 1rem !important;
         font-weight: 700 !important;
         text-align: center !important;
         white-space: pre-wrap !important;
-        padding: 15px !important;
-        margin-bottom: 12px !important;
+        padding: 12px !important;
+        margin-bottom: 8px !important;
         line-height: 1.3 !important;
     }
 
@@ -104,12 +117,9 @@ def laad_data():
         try:
             with open(DATA_BESTAND, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if "boodschappen_historie" not in data:
-                    data["boodschappen_historie"] = {}
-                if "agenda" not in data:
-                    data["agenda"] = []
-                if "boodschappen" not in data:
-                    data["boodschappen"] = []
+                if "boodschappen_historie" not in data: data["boodschappen_historie"] = {}
+                if "agenda" not in data: data["agenda"] = []
+                if "boodschappen" not in data: data["boodschappen"] = []
                 return data
         except Exception:
             pass
@@ -150,18 +160,40 @@ def verwijder_agenda_item(index):
         sla_data_op(st.session_state["gezin_data"])
 
 def voeg_boodschap_toe(item):
+    item_schoon = item.strip().capitalize()
+    if not item_schoon: return
     if "boodschappen" not in st.session_state["gezin_data"]: 
         st.session_state["gezin_data"]["boodschappen"] = []
     if "boodschappen_historie" not in st.session_state["gezin_data"]: 
         st.session_state["gezin_data"]["boodschappen_historie"] = {}
         
-    if item not in st.session_state["gezin_data"]["boodschappen"]:
-        st.session_state["gezin_data"]["boodschappen"].append(item)
+    if item_schoon not in st.session_state["gezin_data"]["boodschappen"]:
+        st.session_state["gezin_data"]["boodschappen"].append(item_schoon)
         
     historie = st.session_state["gezin_data"]["boodschappen_historie"]
-    historie[item] = historie.get(item, 0) + 1
-    
+    historie[item_schoon] = historie.get(item_schoon, 0) + 1
     sla_data_op(st.session_state["gezin_data"])
+
+def verwerk_meerdere_boodschappen(tekst):
+    if not tekst: return
+    try:
+        prompt = f"Splits de volgende tekst op in losse boodschappen. Geef enkel een JSON lijst van strings terug, bijv: [\"Melk\", \"Brood\"]. Tekst: '{tekst}'"
+        res = client.models.generate_content(
+            model='gemini-2.5-flash', 
+            contents=prompt, 
+            config={'response_mime_type': 'application/json'}
+        )
+        items = json.loads(res.text)
+        if isinstance(items, list):
+            for item in items:
+                voeg_boodschap_toe(str(item))
+            return
+    except Exception:
+        pass
+    
+    delen = re.split(r',|\sen\s|\splus\s|\sen ook\s', tekst, flags=re.IGNORECASE)
+    for d in delen:
+        voeg_boodschap_toe(d)
 
 def verwijder_boodschappen_op_index(indices_om_te_verwijderen):
     huidige = st.session_state["gezin_data"].get("boodschappen", [])
@@ -341,218 +373,246 @@ elif st.session_state["huidige_pagina"] == "Agenda":
 # SUBPAGINA: BOODSCHAPPENLIJST
 # ==========================================
 elif st.session_state["huidige_pagina"] == "Boodschappenlijst":
+    # Verwerk spraakinvoer als die is doorgegeven via URL parameters
+    if "spraak_input" in st.query_params:
+        gesproken_tekst = st.query_params.get("spraak_input")
+        if gesproken_tekst:
+            verwerk_meerdere_boodschappen(gesproken_tekst)
+            st.toast(f"🎙️ Ingesproken: '{gesproken_tekst}' toegevoegd!")
+        del st.query_params["spraak_input"]
+        st.rerun()
+
     if st.button("🔙 Terug naar Home"): ga_naar("Home")
     
     if "actieve_hoofd_cat" not in st.session_state: st.session_state["actieve_hoofd_cat"] = None
     if "actieve_sub_cat" not in st.session_state: st.session_state["actieve_sub_cat"] = None
-    if "geselecteerd_product" not in st.session_state: st.session_state["geselecteerd_product"] = None
 
     supermarkt_database = {
         "Aardappelen, Groenten en Fruit (AGF)": {
-            "Vers fruit": [("🍎", "Appels", {"AH": "€2.49", "Jumbo": "€2.39"}), ("🍌", "Bananen", {"AH": "€1.79"}), ("🍓", "Bessen", {"AH": "€3.49"}), ("🍊", "Citrusvruchten", {"AH": "€2.89"})],
-            "Verse groenten": [("🥬", "Bladgroenten", {"AH": "€1.49"}), ("🍅", "Vruchtgroenten", {"AH": "€1.99"}), ("🧅", "Uien", {"AH": "€1.39"})],
-            "Aardappelen": [("🥔", "Verse aardappelen", {"AH": "€2.99"}), ("🥔", "Krieltjes", {"AH": "€1.89"})],
-            "Snoepgroente & salades": [("🥗", "Maaltijdsalade", {"AH": "€4.50"}), ("🥕", "Snackgroenten", {"AH": "€2.49"})]
+            "Vers fruit": [("🍎", "Appels"), ("🍌", "Bananen"), ("🍓", "Bessen"), ("🍊", "Citrusvruchten")],
+            "Verse groenten": [("🥬", "Bladgroenten"), ("🍅", "Vruchtgroenten"), ("🧅", "Uien")],
+            "Aardappelen": [("🥔", "Verse aardappelen"), ("🥔", "Krieltjes")],
+            "Snoepgroente & salades": [("🥗", "Maaltijdsalade"), ("🥕", "Snackgroenten")]
         },
         "Zuivel, Eieren en Boter": {
-            "Melk & Karnemelk": [("🥛", "Verse melk", {"AH": "€1.19"}), ("🥛", "Houdbare melk", {"AH": "€1.05"}), ("🥛", "Havermelk", {"AH": "€2.19"})],
-            "Yoghurt & Kwark": [("🥣", "Yoghurt naturel", {"AH": "€1.59"}), ("🥣", "Plantaardige yoghurt", {"AH": "€2.49"}), ("🥣", "Kwark", {"AH": "€1.89"})],
-            "Kaas": [("🧀", "Verpakte kaas", {"AH": "€3.49"}), ("🧀", "Smeerkaas", {"AH": "€1.69"}), ("🧀", "Hüttenkäse", {"AH": "€1.49"})],
-            "Eieren & Boter": [("🥚", "Scharreleieren", {"AH": "€2.89"}), ("🧈", "Roomboter", {"AH": "€2.49"}), ("🧈", "Margarine", {"AH": "€1.79"})]
+            "Melk & Karnemelk": [("🥛", "Verse melk"), ("🥛", "Houdbare melk"), ("🥛", "Havermelk")],
+            "Yoghurt & Kwark": [("🥣", "Yoghurt naturel"), ("🥣", "Plantaardige yoghurt"), ("🥣", "Kwark")],
+            "Kaas": [("🧀", "Verpakte kaas"), ("🧀", "Smeerkaas"), ("🧀", "Hüttenkäse")],
+            "Eieren & Boter": [("🥚", "Scharreleieren"), ("🧈", "Roomboter"), ("🧈", "Margarine")]
         },
         "Vlees, Vis en Vega": {
-            "Vlees": [("🍗", "Kip", {"AH": "€5.49"}), ("🥩", "Rundvarken", {"AH": "€4.99"}), ("🥩", "Gehakt", {"AH": "€4.49"}), ("🥩", "Biefstuk", {"AH": "€6.99"})],
-            "Vis": [("🐟", "Verse vis", {"AH": "€5.99"}), ("🐟", "Gerookte vis", {"AH": "€4.49"}), ("🦐", "Zeevruchten", {"AH": "€4.99"})],
-            "Vegetarisch & Vegan": [("🌱", "Vleesvervangers", {"AH": "€3.49"}), ("🌱", "Tofu", {"AH": "€1.99"}), ("🧆", "Falafel", {"AH": "€2.49"})]
+            "Vlees": [("🍗", "Kip"), ("🥩", "Rundvarken"), ("🥩", "Gehakt"), ("🥩", "Biefstuk")],
+            "Vis": [("🐟", "Verse vis"), ("🐟", "Gerookte vis"), ("🦐", "Zeevruchten")],
+            "Vegetarisch & Vegan": [("🌱", "Vleesvervangers"), ("🌱", "Tofu"), ("🧆", "Falafel")]
         },
         "Brood, Banket en Ontbijt": {
-            "Vers brood & Banket": [("🍞", "Vers brood", {"AH": "€1.89"}), ("🥖", "Afgebakken brood", {"AH": "€0.99"}), ("🥐", "Croissants", {"AH": "€1.49"}), ("🍰", "Gebak", {"AH": "€3.99"})],
-            "Ontbijtgranen": [("🥣", "Muesli", {"AH": "€2.49"}), ("🥣", "Havermout", {"AH": "€1.19"}), ("🥣", "Cruesli", {"AH": "€2.89"})],
-            "Broodbeleg": [("🍓", "Jam", {"AH": "€2.19"}), ("🥜", "Pindakaas", {"AH": "€2.69"}), ("🍫", "Chocopasta", {"AH": "€2.49"}), ("🍫", "Hagelslag", {"AH": "€2.19"}), ("🍯", "Honing", {"AH": "€3.29"})]
+            "Vers brood & Banket": [("🍞", "Vers brood"), ("🥖", "Afgebakken brood"), ("🥐", "Croissants"), ("🍰", "Gebak")],
+            "Ontbijtgranen": [("🥣", "Muesli"), ("🥣", "Havermout"), ("🥣", "Cruesli")],
+            "Broodbeleg": [("🍓", "Jam"), ("🥜", "Pindakaas"), ("🍫", "Chocopasta"), ("🍫", "Hagelslag"), ("🍯", "Honing")]
         },
         "Dranken": {
-            "Frisdranken & Sappen": [("🥤", "Cola", {"AH": "€2.49"}), ("🥤", "Sinas", {"AH": "€1.89"}), ("💧", "Water", {"AH": "€0.65"}), ("🧃", "Verse jus", {"AH": "€2.99"})],
-            "Koffie & Thee": [("☕", "Koffiebonen", {"AH": "€12.99"}), ("☕", "Gemalen koffie", {"AH": "€4.29"}), ("🍵", "Theezakjes", {"AH": "€1.89"})],
-            "Alcohol": [("🍺", "Bier", {"AH": "€15.99"}), ("🍷", "Wijn", {"AH": "€5.99"}), ("🥃", "Sterke drank", {"AH": "€14.99"})]
+            "Frisdranken & Sappen": [("🥤", "Cola"), ("🥤", "Sinas"), ("💧", "Water"), ("🧃", "Verse jus")],
+            "Koffie & Thee": [("☕", "Koffiebonen"), ("☕", "Gemalen koffie"), ("🍵", "Theezakjes")],
+            "Alcohol": [("🍺", "Bier"), ("🍷", "Wijn"), ("🥃", "Sterke drank")]
         },
         "Houdbare Kruidenierswaren": {
-            "Pasta, Rijst & Granen": [("🍝", "Pastasoorten", {"AH": "€1.29"}), ("🍚", "Rijst", {"AH": "€1.79"}), ("🍜", "Noedels", {"AH": "€0.89"}), ("🌾", "Quinoa", {"AH": "€2.49"})],
-            "Soepen & Conserven": [("🥫", "Tomatensoep", {"AH": "€2.49"}), ("🥫", "Groenten in blik", {"AH": "€1.19"}), ("🐟", "Vis in blik (tonijn)", {"AH": "€3.49"})],
-            "Kruiden & Sauzen": [("🧂", "Mayonaise", {"AH": "€1.89"}), ("🍅", "Ketchup", {"AH": "€1.69"}), ("🫒", "Olijfolie", {"AH": "€4.99"}), ("🌿", "Droge kruiden", {"AH": "€1.49"})]
+            "Pasta, Rijst & Granen": [("🍝", "Pastasoorten"), ("🍚", "Rijst"), ("🍜", "Noedels"), ("🌾", "Quinoa")],
+            "Soepen & Conserven": [("🥫", "Tomatensoep"), ("🥫", "Groenten in blik"), ("🐟", "Vis in blik (tonijn)")],
+            "Kruiden & Sauzen": [("🧂", "Mayonaise"), ("🍅", "Ketchup"), ("🫒", "Olijfolie"), ("🌿", "Droge kruiden")]
         },
         "Snacks, Snoep en Zoetigheid": {
-            "Zoutje & Nootjes": [("🥔", "Chips", {"AH": "€1.69"}), ("🍿", "Popcorn", {"AH": "€1.29"}), ("🥨", "Borrelnoten", {"AH": "€1.89"})],
-            "Snoep & Chocolade": [("🍬", "Drop", {"AH": "€1.49"}), ("🍫", "Repen", {"AH": "€2.49"}), ("🍬", "Pepermunt", {"AH": "€1.19"})],
-            "Koekjes": [("🍪", "Ontbijtkoek", {"AH": "€1.89"}), ("🍪", "Gevulde koeken", {"AH": "€2.19"}), ("🍪", "Biscuits", {"AH": "€1.49"})]
+            "Zoutje & Nootjes": [("🥔", "Chips"), ("🍿", "Popcorn"), ("🥨", "Borrelnoten")],
+            "Snoep & Chocolade": [("🍬", "Drop"), ("🍫", "Repen"), ("🍬", "Pepermunt")],
+            "Koekjes": [("🍪", "Ontbijtkoek"), ("🍪", "Gevulde koeken"), ("🍪", "Biscuits")]
         },
         "Diepvries en Kant-en-Klaar": {
-            "Diepvries": [("🍕", "Pizza's", {"AH": "€3.49"}), ("🍦", "IJs", {"AH": "€3.99"}), ("🍟", "Frites", {"AH": "€2.19"}), ("🥦", "Diepvriesgroente", {"AH": "€1.69"})],
-            "Maaltijden & Soepen": [("🍲", "Koelverse maaltijden", {"AH": "€4.99"}), ("🥣", "Maaltijdsoepen", {"AH": "€3.49"})]
+            "Diepvries": [("🍕", "Pizza's"), ("🍦", "IJs"), ("🍟", "Frites"), ("🥦", "Diepvriesgroente")],
+            "Maaltijden & Soepen": [("🍲", "Koelverse maaltijden"), ("🥣", "Maaltijdsoepen")]
         },
         "Drogisterij en Non-Food": {
-            "Persoonlijke verzorging": [("🧴", "Shampoo", {"AH": "€3.49"}), ("🧴", "Deodorant", {"AH": "€2.99"}), ("🪥", "Tandpasta", {"AH": "€2.49"}), ("🧼", "Douchegel", {"AH": "€2.89"})],
-            "Schoonmaak & Huishouden": [("🧼", "Vaatwastabletten", {"AH": "€6.99"}), ("🫧", "Wasmiddel", {"AH": "€7.99"}), ("🧻", "Wc-papier", {"AH": "€5.49"}), ("🗑️", "Vuilniszakken", {"AH": "€1.99"})],
-            "Dierenverzorging": [("🐾", "Kattenbrokken", {"AH": "€4.99"}), ("🦴", "Hondenvoer", {"AH": "€5.99"}), ("🧴", "Vlooienmiddelen", {"AH": "€8.99"})]
+            "Persoonlijke verzorging": [("🧴", "Shampoo"), ("🧴", "Deodorant"), ("🪥", "Tandpasta"), ("🧼", "Douchegel")],
+            "Schoonmaak & Huishouden": [("🧼", "Vaatwastabletten"), ("🫧", "Wasmiddel"), ("🧻", "Wc-papier"), ("🗑️", "Vuilniszakken")],
+            "Dierenverzorging": [("🐾", "Kattenbrokken"), ("🦴", "Hondenvoer"), ("🧴", "Vlooienmiddelen")]
         }
     }
 
-    col_lijst, col_tegels = st.columns([1, 1.4])
+    # ----------------------------------------------------
+    # DEEL 1: CATEGORIEËN & PRODUCTTEGELS (BOVENAAN)
+    # ----------------------------------------------------
+    st.markdown("#### 🗂️ Producten & Categorieën")
+    
+    hoofd_cat = st.session_state["actieve_hoofd_cat"]
+    sub_cat = st.session_state["actieve_sub_cat"]
 
-    with col_lijst:
-        st.markdown("### 🛒 Actieve Lijst")
-        
-        with st.form("boodschap_form", clear_on_submit=True):
-            nieuw_item = st.text_input("Snel toevoegen...")
-            if st.form_submit_button("➕ Toevoegen") and nieuw_item:
-                voeg_boodschap_toe(nieuw_item)
+    if hoofd_cat is not None:
+        col_terug, col_titel_cat = st.columns([1, 3])
+        with col_terug:
+            if st.button("⬅️ Terug", key="terug_naar_hoofd"):
+                st.session_state["actieve_hoofd_cat"] = None
                 st.rerun()
-
-        boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
-        if boodschappen_lijst:
-            st.markdown(f"<p style='color: #aaa; font-size: 0.85rem;'>Totaal {len(boodschappen_lijst)} items op je lijstje</p>", unsafe_allow_html=True)
-            indices_om_te_verwijderen = []
-            for idx, item in enumerate(boodschappen_lijst):
-                if st.checkbox(f"🛍️ {item}", key=f"boodschap_{idx}"): 
-                    indices_om_te_verwijderen.append(idx)
-            
-            st.markdown("---")
-            col_v1, col_v2 = st.columns(2)
-            with col_v1:
-                if indices_om_te_verwijderen:
-                    if st.button("🗑️ Wissen (aangevinkt)", use_container_width=True):
-                        verwijder_boodschappen_op_index(indices_om_te_verwijderen)
+        with col_titel_cat:
+            st.markdown(f"**📂 {hoofd_cat}**")
+        
+        sub_dict = supermarkt_database.get(hoofd_cat, {})
+        
+        if sub_cat is None:
+            # 2-koloms tegelindeling voor subcategorieën
+            cols = st.columns(2)
+            sub_namen = list(sub_dict.keys())
+            for i, s_naam in enumerate(sub_namen):
+                col_target = cols[i % 2]
+                with col_target:
+                    ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
+                    if st.button(f"{ic}\n\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
+                        st.session_state["actieve_sub_cat"] = s_naam
                         st.rerun()
-            with col_v2:
-                if st.button("❌ Alles wissen", use_container_width=True):
-                    leeg_boodschappenlijst()
-                    st.rerun()
-        else: 
-            st.markdown("""
-                <div style="background-color: #1a1a1a; border: 2px dashed #444; border-radius: 16px; padding: 20px; text-align: center; color: #888; margin-top: 15px;">
-                    <h5>Je lijstje is leeg! 📭</h5>
-                    <p style="font-size: 0.85rem; margin-bottom: 0;">Kies rechts een categorie of gebruik de zoekbalk om toe te voegen.</p>
-                </div>
-            """, unsafe_allow_html=True)
-
-    with col_tegels:
-        st.markdown("### 🗂️ Producten Zoeken & Kiezen")
-        
-        zoek_query = st.text_input("🔍 Zoek een product...", key="prod_zoekbalk")
-        
-        if zoek_query:
-            st.markdown(f"**Zoekresultaten voor '{zoek_query}':**")
-            gevonden = []
-            for h_cat, sub_dict in supermarkt_database.items():
-                for s_cat, prods in sub_dict.items():
-                    for icoon, p_naam, prijzen in prods:
-                        if zoek_query.lower() in p_naam.lower():
-                            gevonden.append((icoon, p_naam, prijzen))
-            
-            if gevonden:
-                # 2-koloms tegelindeling voor zoekresultaten
-                cols = st.columns(2)
-                for i, (icoon, prod_naam, prijzen_dict) in enumerate(gevonden):
-                    col_target = cols[i % 2]
-                    with col_target:
-                        if st.button(f"{icoon}\n\n{prod_naam}", key=f"zoek_prod_{i}", use_container_width=True):
-                            voeg_boodschap_toe(prod_naam)
-                            st.success(f"'{prod_naam}' toegevoegd!")
-                            st.rerun()
-            else:
-                st.info("Geen exacte matches. Voeg het handmatig toe aan je lijstje!")
         else:
-            hoofd_cat = st.session_state["actieve_hoofd_cat"]
-            sub_cat = st.session_state["actieve_sub_cat"]
-            geselecteerd_prod = st.session_state["geselecteerd_product"]
+            if st.button("⬅️ Terug naar subcategorieën", key="terug_naar_subs_overzicht"):
+                st.session_state["actieve_sub_cat"] = None
+                st.rerun()
+                
+            st.markdown(f"**🏷️ {sub_cat}**")
+            producten = sub_dict.get(sub_cat, [])
             
-            if geselecteerd_prod is not None:
-                prod_naam, prijzen_dict = geselecteerd_prod
-                col_terug_prod, col_titel_prod = st.columns([1, 3])
-                with col_terug_prod:
-                    if st.button("⬅️ Terug", key="terug_naar_sub"):
-                        st.session_state["geselecteerd_product"] = None
+            # 2-koloms tegelindeling voor producten (direct toevoegen bij klik)
+            cols = st.columns(2)
+            for i, (icoon, prod_naam) in enumerate(producten):
+                col_target = cols[i % 2]
+                with col_target:
+                    if st.button(f"{icoon}\n\n{prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
+                        voeg_boodschap_toe(prod_naam)
+                        st.toast(f"✅ '{prod_naam}' toegevoegd!")
                         st.rerun()
-                with col_titel_prod:
-                    st.markdown(f"#### 🏷️ {prod_naam}")
-                    
-                st.markdown("<p style='color: #aaa; font-size: 0.9rem;'>Kies winkel of voeg direct toe:</p>", unsafe_allow_html=True)
-                
-                cols_prijs = st.columns(len(prijzen_dict))
-                for i, (winkel, prijs) in enumerate(prijzen_dict.items()):
-                    with cols_prijs[i % len(cols_prijs)]:
-                        if st.button(f"🏪 **{winkel}**\n\n{prijs}", key=f"winkel_prijs_{i}", use_container_width=True):
-                            voeg_boodschap_toe(prod_naam)
-                            st.success(f"'{prod_naam}' toegevoegd!")
-                            st.session_state["geselecteerd_product"] = None
-                            st.rerun()
-                
-                if st.button("➕ Voeg toe zonder winkelkeuze", use_container_width=True):
-                    voeg_boodschap_toe(prod_naam)
-                    st.success(f"'{prod_naam}' toegevoegd!")
-                    st.session_state["geselecteerd_product"] = None
+
+    else:
+        hoofd_icoontjes = {
+            "Aardappelen, Groenten en Fruit (AGF)": "🥦",
+            "Zuivel, Eieren en Boter": "🥛",
+            "Vlees, Vis en Vega": "🥩",
+            "Brood, Banket en Ontbijt": "🥐",
+            "Dranken": "🥤",
+            "Houdbare Kruidenierswaren": "🥫",
+            "Snacks, Snoep en Zoetigheid": "🍫",
+            "Diepvries en Kant-en-Klaar": "🍕",
+            "Drogisterij en Non-Food": "🧻"
+        }
+        
+        # 2-koloms tegelindeling voor hoofdcategorieën
+        cols = st.columns(2)
+        for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
+            col_target = cols[i % 2]
+            with col_target:
+                if st.button(f"{icoon}\n\n{cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
+                    st.session_state["actieve_hoofd_cat"] = cat_naam
+                    st.session_state["actieve_sub_cat"] = None
                     st.rerun()
 
-            elif hoofd_cat is not None:
-                col_terug, col_titel_cat = st.columns([1, 3])
-                with col_terug:
-                    if st.button("⬅️ Terug", key="terug_naar_hoofd"):
-                        st.session_state["actieve_hoofd_cat"] = None
-                        st.rerun()
-                with col_titel_cat:
-                    st.markdown(f"#### 📂 {hoofd_cat}")
-                
-                sub_dict = supermarkt_database.get(hoofd_cat, {})
-                
-                if sub_cat is None:
-                    # 2-koloms tegelindeling voor subcategorieën
-                    cols = st.columns(2)
-                    sub_namen = list(sub_dict.keys())
-                    for i, s_naam in enumerate(sub_namen):
-                        col_target = cols[i % 2]
-                        with col_target:
-                            ic = sub_dict[s_naam][0][0] if sub_dict[s_naam] else "🛒"
-                            if st.button(f"{ic}\n\n{s_naam}", key=f"subcat_btn_{i}", use_container_width=True):
-                                st.session_state["actieve_sub_cat"] = s_naam
-                                st.rerun()
-                else:
-                    if st.button("⬅️ Terug naar subcategorieën", key="terug_naar_subs_overzicht"):
-                        st.session_state["actieve_sub_cat"] = None
-                        st.rerun()
-                        
-                    st.markdown(f"##### 🏷️ {sub_cat}")
-                    producten = sub_dict.get(sub_cat, [])
-                    
-                    # 2-koloms tegelindeling voor producten
-                    cols = st.columns(2)
-                    for i, (icoon, prod_naam, prijzen_dict) in enumerate(producten):
-                        col_target = cols[i % 2]
-                        with col_target:
-                            if st.button(f"{icoon}\n\n{prod_naam}", key=f"prod_btn_{i}", use_container_width=True):
-                                st.session_state["geselecteerd_product"] = (prod_naam, prijzen_dict)
-                                st.rerun()
+    st.markdown("---")
 
-            else:
-                hoofd_icoontjes = {
-                    "Aardappelen, Groenten en Fruit (AGF)": "🥦",
-                    "Zuivel, Eieren en Boter": "🥛",
-                    "Vlees, Vis en Vega": "🥩",
-                    "Brood, Banket en Ontbijt": "🥐",
-                    "Dranken": "🥤",
-                    "Houdbare Kruidenierswaren": "🥫",
-                    "Snacks, Snoep en Zoetigheid": "🍫",
-                    "Diepvries en Kant-en-Klaar": "🍕",
-                    "Drogisterij en Non-Food": "🧻"
-                }
-                
-                # 2-koloms tegelindeling voor hoofdcategorieën
-                cols = st.columns(2)
-                for i, (cat_naam, icoon) in enumerate(hoofd_icoontjes.items()):
-                    col_target = cols[i % 2]
-                    with col_target:
-                        if st.button(f"{icoon}\n\n{cat_naam}", key=f"hoofd_cat_{i}", use_container_width=True):
-                            st.session_state["actieve_hoofd_cat"] = cat_naam
-                            st.session_state["actieve_sub_cat"] = None
-                            st.rerun()
+    # ----------------------------------------------------
+    # DEEL 2: SNEL & SPRAAK TOEVOEGEN (IN HET MIDDEN)
+    # ----------------------------------------------------
+    st.markdown("#### ➕ Snel & Spraak Toevoegen")
+    
+    with st.form("boodschap_form", clear_on_submit=True):
+        nieuw_item = st.text_input("Typ losse boodschappen of hele lijst (bijv: melk, brood, eieren)")
+        if st.form_submit_button("➕ Toevoegen") and nieuw_item:
+            verwerk_meerdere_boodschappen(nieuw_item)
+            st.rerun()
+
+    # WEB SPEECH API KNOP (Spreek een hele lijst in)
+    st.components.v1.html("""
+        <div style="text-align: center; margin-top: 5px;">
+            <button id="micBtn" onclick="startDictation()" style="
+                background-color: #1B4D2E;
+                color: white;
+                border: 1px solid #2E7D32;
+                border-radius: 12px;
+                padding: 12px 18px;
+                font-size: 15px;
+                font-weight: bold;
+                cursor: pointer;
+                width: 100%;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+                transition: background-color 0.2s;
+            ">
+                🎙️ Spreek een hele lijst in
+            </button>
+            <p id="statusMsg" style="color: #aaa; font-size: 12px; margin-top: 6px; margin-bottom: 0;"></p>
+        </div>
+
+        <script>
+        function startDictation() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                var recognition = new SpeechRecognition();
+                recognition.lang = 'nl-NL';
+                recognition.interimResults = false;
+
+                var btn = document.getElementById('micBtn');
+                var status = document.getElementById('statusMsg');
+
+                status.innerText = '🎤 Luisteren... noem al je boodschappen op!';
+                btn.style.backgroundColor = '#d32f2f';
+
+                recognition.start();
+
+                recognition.onresult = function(event) {
+                    var res = event.results[0][0].transcript;
+                    status.innerText = 'Verwerken: "' + res + '"';
+                    
+                    const url = new URL(window.parent.location.href);
+                    url.searchParams.set("spraak_input", res);
+                    window.parent.location.href = url.href;
+                };
+
+                recognition.onerror = function(event) {
+                    status.innerText = 'Fout bij herkenning: ' + event.error;
+                    btn.style.backgroundColor = '#1B4D2E';
+                };
+
+                recognition.onend = function() {
+                    btn.style.backgroundColor = '#1B4D2E';
+                };
+            } else {
+                alert('Spraakherkenning wordt niet ondersteund door je browser. Gebruik Safari of Chrome.');
+            }
+        }
+        </script>
+    """, height=85)
+
+    st.markdown("---")
+
+    # ----------------------------------------------------
+    # DEEL 3: HET BOODSCHAPPENLIJSTJE (ONDERAAN)
+    # ----------------------------------------------------
+    st.markdown("#### 🛒 Mijn Boodschappenlijst")
+    
+    boodschappen_lijst = st.session_state["gezin_data"].get("boodschappen", [])
+    if boodschappen_lijst:
+        st.markdown(f"<p style='color: #aaa; font-size: 0.85rem;'>Totaal {len(boodschappen_lijst)} items op je lijstje</p>", unsafe_allow_html=True)
+        indices_om_te_verwijderen = []
+        for idx, item in enumerate(boodschappen_lijst):
+            if st.checkbox(f"🛍️ {item}", key=f"boodschap_{idx}"): 
+                indices_om_te_verwijderen.append(idx)
+        
+        col_v1, col_v2 = st.columns(2)
+        with col_v1:
+            if indices_om_te_verwijderen:
+                if st.button("🗑️ Wissen (aangevinkt)", use_container_width=True):
+                    verwijder_boodschappen_op_index(indices_om_te_verwijderen)
+                    st.rerun()
+        with col_v2:
+            if st.button("❌ Alles wissen", use_container_width=True):
+                leeg_boodschappenlijst()
+                st.rerun()
+    else: 
+        st.markdown("""
+            <div style="background-color: #1a1a1a; border: 2px dashed #444; border-radius: 16px; padding: 20px; text-align: center; color: #888;">
+                <h5>Je lijstje is leeg! 📭</h5>
+                <p style="font-size: 0.85rem; margin-bottom: 0;">Kies bovenaan een categorie of gebruik de spraakknop om toe te voegen.</p>
+            </div>
+        """, unsafe_allow_html=True)
 
 
 # ==========================================
